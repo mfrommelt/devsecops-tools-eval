@@ -1,0 +1,97 @@
+<!-- backend/java-mulesoft/src/main/mule/csb-security-test.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:db="http://www.mulesoft.org/schema/mule/db"
+      xmlns:json="http://www.mulesoft.org/schema/mule/json"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+                          http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+                          http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+                          http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+
+    <!-- Hardcoded database configuration (intentional security issue) -->
+    <db:config name="Database_Config">
+        <db:generic-connection url="jdbc:postgresql://localhost:5432/csbdb"
+                              driverClassName="org.postgresql.Driver"
+                              user="postgres"
+                              password="hardcoded_mule_db_password_123"/> <!-- Secret detection test -->
+    </db:config>
+
+    <!-- HTTP listener configuration -->
+    <http:listener-config name="HTTP_Listener_config">
+        <http:listener-connection host="0.0.0.0" port="8081"/>
+    </http:listener-config>
+
+    <!-- Banking API Flow with security vulnerabilities -->
+    <flow name="banking-api-flow">
+        <http:listener config-ref="HTTP_Listener_config" path="/api/banking/*"/>
+        
+        <!-- SQL Injection vulnerability through dynamic query building -->
+        <db:select config-ref="Database_Config">
+            <db:sql>SELECT * FROM accounts WHERE customer_id = #[attributes.uriParams.id]</db:sql>
+        </db:select>
+        
+        <!-- Log sensitive data (compliance violation) -->
+        <logger level="INFO" message="Processing request for customer: #[attributes.uriParams.id]"/>
+        <logger level="INFO" message="Account data: #[payload]"/>
+        
+        <json:object-to-json-transformer/>
+    </flow>
+
+    <!-- Payment processing flow with PII exposure -->
+    <flow name="payment-processing-flow">
+        <http:listener config-ref="HTTP_Listener_config" path="/api/payments"/>
+        
+        <!-- Extract payment data -->
+        <json:json-to-object-transformer/>
+        
+        <!-- Log PII data (security violation) -->
+        <logger level="INFO" message="Processing payment for card: #[payload.creditCard]"/>
+        <logger level="INFO" message="Customer SSN: #[payload.ssn]"/>
+        
+        <!-- Hardcoded API keys in flow -->
+        <set-variable variableName="stripeKey" value="sk_live_mulesoft_stripe_key_789"/>
+        <set-variable variableName="bankApiKey" value="bank_api_mulesoft_production_456"/>
+        
+        <!-- External API call with hardcoded credentials -->
+        <http:request config-ref="HTTP_Request_configuration" path="/charge" method="POST">
+            <http:headers>
+                <http:header headerName="Authorization" value="Bearer sk_live_mulesoft_stripe_key_789"/>
+                <http:header headerName="X-Bank-API-Key" value="bank_api_mulesoft_production_456"/>
+            </http:headers>
+        </http:request>
+        
+        <json:object-to-json-transformer/>
+    </flow>
+
+    <!-- File processing flow with path traversal vulnerability -->
+    <flow name="file-processing-flow">
+        <http:listener config-ref="HTTP_Listener_config" path="/api/files/{filename}"/>
+        
+        <!-- Path traversal vulnerability - no validation on filename -->
+        <file:read path="/var/uploads/#[attributes.uriParams.filename]"/>
+        
+        <set-payload value="#[payload]"/>
+    </flow>
+
+    <!-- Admin flow with command injection vulnerability -->
+    <flow name="admin-flow">
+        <http:listener config-ref="HTTP_Listener_config" path="/api/admin/execute"/>
+        
+        <json:json-to-object-transformer/>
+        
+        <!-- Command injection vulnerability -->
+        <scripting:component>
+            <scripting:script engine="groovy">
+                <scripting:text>
+                    def command = payload.command
+                    def process = Runtime.getRuntime().exec(command) // Dangerous command execution
+                    return [status: "executed", command: command]
+                </scripting:text>
+            </scripting:script>
+        </scripting:component>
+        
+        <json:object-to-json-transformer/>
+    </flow>
+</mule>

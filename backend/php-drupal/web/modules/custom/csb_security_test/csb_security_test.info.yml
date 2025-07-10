@@ -1,0 +1,14 @@
+# backend/php-drupal/web/modules/custom/csb_security_test/csb_security_test.info.yml
+name: CSB Security Test
+type: module
+description: 'Intentionally vulnerable module for security testing - DO NOT USE IN PRODUCTION'
+core_version_requirement: ^9 || ^10
+package: CSB Testing
+dependencies:
+  - drupal:user
+  - drupal:system
+  - drupal:field
+configure: admin.csb.security-test
+
+# WARNING: This module contains intentional security vulnerabilities
+# for testing purposes. Never install in production environments.
