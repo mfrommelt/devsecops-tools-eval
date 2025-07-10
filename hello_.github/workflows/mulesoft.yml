@@ -1,0 +1,111 @@
+# .github/workflows/mulesoft.yml
+name: MuleSoft DataWeave Security Pipeline
+
+on:
+  push:
+    paths:
+      - 'backend/java-mulesoft/**'
+      - '.semgrep/dataweave-rules.yml'
+  pull_request:
+    paths:
+      - 'backend/java-mulesoft/**'
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly DataWeave security scan
+
+env:
+  MULESOFT_APP_PATH: backend/java-mulesoft
+  DATAWEAVE_PATH: backend/java-mulesoft/src/main/resources/dataweave
+
+jobs:
+  dataweave-security:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    # Setup Java for MuleSoft
+    - name: Setup Java 11
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+    
+    # Install MuleSoft CLI
+    - name: Install MuleSoft CLI
+      run: |
+        npm install -g mule-cli
+        
+    # Install Anypoint CLI
+    - name: Install Anypoint CLI
+      run: |
+        npm install -g anypoint-cli
+    
+    # DataWeave Security Scanning
+    - name: DataWeave Secret Detection
+      run: |
+        echo "🔐 Scanning DataWeave files for secrets..."
+        find ${{ env.DATAWEAVE_PATH }} -name "*.dwl" -exec grep -Hn -i "password\|secret\|key\|token" {} \; > dataweave-secrets.txt || true
+        
+        if [ -s dataweave-secrets.txt ]; then
+          echo "❌ Secrets found in DataWeave files:"
+          cat dataweave-secrets.txt
+          exit 1
+        fi
+    
+    # PII Detection in DataWeave
+    - name: DataWeave PII Detection
+      run: |
+        echo "👤 Scanning DataWeave files for PII exposure..."
+        find ${{ env.DATAWEAVE_PATH }} -name "*.dwl" -exec grep -Hn -E "(ssn|creditCard|cvv|socialSecurity)" {} \; > dataweave-pii.txt || true
+        
+        if [ -s dataweave-pii.txt ]; then
+          echo "❌ PII exposure found in DataWeave files:"
+          cat dataweave-pii.txt
+          exit 1
+        fi
+    
+    # DataWeave Injection Vulnerabilities
+    - name: DataWeave Injection Scan
+      run: |
+        echo "💉 Scanning for injection vulnerabilities..."
+        find ${{ env.DATAWEAVE_PATH }} -name "*.dwl" -exec grep -Hn -E "(SELECT.*\+|INSERT.*\+)" {} \; > dataweave-injection.txt || true
+    
+    # Custom DataWeave Semgrep Rules
+    - name: Semgrep DataWeave Security Scan
+      uses: semgrep/semgrep-action@v1
+      with:
+        config: .semgrep/dataweave-rules.yml
+      env:
+        SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+    
+    # MuleSoft Application Build
+    - name: Build MuleSoft Application
+      run: |
+        cd ${{ env.MULESOFT_APP_PATH }}
+        mvn clean compile -DskipTests
+    
+    # OWASP Dependency Check for MuleSoft
+    - name: OWASP Dependency Check
+      run: |
+        cd ${{ env.MULESOFT_APP_PATH }}
+        mvn org.owasp:dependency-check-maven:check
+    
+    # Anypoint Platform Security Audit (if credentials provided)
+    - name: Anypoint Security Audit
+      if: env.ANYPOINT_USERNAME && env.ANYPOINT_PASSWORD
+      run: ./scripts/security/anypoint-security-audit.sh
+      env:
+        ANYPOINT_USERNAME: ${{ secrets.ANYPOINT_USERNAME }}
+        ANYPOINT_PASSWORD: ${{ secrets.ANYPOINT_PASSWORD }}
+    
+    # Generate MuleSoft Security Report
+    - name: Generate Security Report
+      run: |
+        ./scripts/security/dataweave-security-scan.sh
+        ./scripts/security/mulesoft-security-scan.sh
+    
+    # Upload Security Reports
+    - name: Upload MuleSoft Security Reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: mulesoft-security-reports
+        path: security-reports/dataweave/

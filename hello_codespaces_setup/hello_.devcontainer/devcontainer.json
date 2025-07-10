@@ -1,0 +1,130 @@
+{
+  "name": "CSB DevSecOps Test Environment",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "enableNonRootDocker": true
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "18"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.9",
+      "installTools": true
+    },
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "11",
+      "installMaven": true
+    },
+    "ghcr.io/devcontainers/features/dotnet:2": {
+      "version": "6.0"
+    },
+    "ghcr.io/devcontainers/features/php:1": {
+      "version": "8.1",
+      "installComposer": true
+    }
+  },
+
+  "runArgs": [
+    "--privileged"
+  ],
+
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ],
+
+  "postCreateCommand": ".devcontainer/setup.sh",
+  
+  "forwardPorts": [
+    3000,   // React App
+    3001,   // Node.js Express
+    4200,   // Angular App
+    5000,   // Flask API
+    8000,   // Django API
+    8080,   // Spring Boot API
+    8081,   // Adminer
+    8082,   // MuleSoft Runtime
+    8090,   // .NET Core API
+    8888,   // PHP/Drupal
+    5432,   // PostgreSQL
+    3306,   // MySQL
+    1521    // Oracle
+  ],
+  
+  "portsAttributes": {
+    "3000": {
+      "label": "React App",
+      "onAutoForward": "notify"
+    },
+    "4200": {
+      "label": "Angular App",
+      "onAutoForward": "notify"
+    },
+    "8000": {
+      "label": "Django API",
+      "onAutoForward": "notify"
+    },
+    "8080": {
+      "label": "Spring Boot API",
+      "onAutoForward": "notify"
+    },
+    "8082": {
+      "label": "MuleSoft Runtime",
+      "onAutoForward": "notify"
+    },
+    "8888": {
+      "label": "Drupal Application",
+      "onAutoForward": "notify"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.vscode-typescript-next",
+        "ms-python.python",
+        "redhat.java",
+        "ms-dotnettools.csharp",
+        "bmewburn.vscode-intelephense-client",
+        "ms-vscode.docker",
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+        "hashicorp.terraform",
+        "github.vscode-github-actions",
+        "github.copilot",
+        "ms-vsliveshare.vsliveshare",
+        "salesforce.salesforcedx-vscode"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "docker.enableDockerComposeLanguageService": true,
+        "git.autofetch": true,
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.fixAll": true
+        },
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "java.home": "/usr/local/sdkman/candidates/java/current",
+        "dotnet.defaultSolution": "backend/csharp-webapi/csb-webapi.sln",
+        "php.validate.executablePath": "/usr/local/bin/php"
+      }
+    }
+  },
+
+  "remoteEnv": {
+    "NODE_ENV": "development",
+    "FLASK_ENV": "development", 
+    "DJANGO_SETTINGS_MODULE": "csb_project.settings",
+    "ASPNETCORE_ENVIRONMENT": "Development",
+    "SPRING_PROFILES_ACTIVE": "development",
+    "MULE_HOME": "/opt/mule",
+    "DRUPAL_ENV": "development"
+  },
+
+  "initializeCommand": "echo 'Initializing CSB DevSecOps Test Environment...'",
+  
+  "updateContentCommand": "echo 'Updating dependencies...' && .devcontainer/update.sh",
+  
+  "postStartCommand": "echo 'DevSecOps Test Environment Ready! 🚀'"
+}

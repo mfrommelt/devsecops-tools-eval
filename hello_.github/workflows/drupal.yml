@@ -1,0 +1,119 @@
+# .github/workflows/drupal.yml
+name: Drupal Security Pipeline
+
+on:
+  push:
+    paths:
+      - 'backend/php-drupal/**'
+      - '.semgrep/drupal-rules.yml'
+  pull_request:
+    paths:
+      - 'backend/php-drupal/**'
+  schedule:
+    - cron: '0 4 * * *'  # Daily Drupal security scan
+
+env:
+  DRUPAL_PATH: backend/php-drupal
+
+jobs:
+  drupal-security:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    # Setup PHP for Drupal
+    - name: Setup PHP 8.1
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+        extensions: pdo_mysql, pdo_pgsql, gd, curl, json
+    
+    # Install Composer dependencies
+    - name: Install Composer Dependencies
+      run: |
+        cd ${{ env.DRUPAL_PATH }}
+        composer install --no-dev --optimize-autoloader
+    
+    # Install Drush
+    - name: Install Drush
+      run: |
+        composer global require drush/drush
+        echo "$HOME/.composer/vendor/bin" >> $GITHUB_PATH
+    
+    # Drupal Core Security Check
+    - name: Drupal Core Security Updates
+      run: |
+        cd ${{ env.DRUPAL_PATH }}
+        drush pm:security --format=json > drupal-security-updates.json
+        
+        if [ -s drupal-security-updates.json ]; then
+          echo "❌ Security updates available:"
+          cat drupal-security-updates.json
+        fi
+    
+    # Custom Module Security Scan
+    - name: Custom Module Security Scan
+      run: |
+        echo "🔍 Scanning custom modules..."
+        find ${{ env.DRUPAL_PATH }}/web/modules/custom -name "*.php" -exec grep -Hn -i "password\|secret\|key" {} \; > custom-module-secrets.txt || true
+        
+        if [ -s custom-module-secrets.txt ]; then
+          echo "❌ Secrets found in custom modules:"
+          cat custom-module-secrets.txt
+          exit 1
+        fi
+    
+    # SQL Injection Detection
+    - name: SQL Injection Pattern Detection
+      run: |
+        echo "💉 Scanning for SQL injection patterns..."
+        find ${{ env.DRUPAL_PATH }}/web/modules/custom -name "*.php" -exec grep -Hn -E "(query\(.*\+|->query\(.*\$)" {} \; > sql-injection-patterns.txt || true
+        
+        if [ -s sql-injection-patterns.txt ]; then
+          echo "❌ Potential SQL injection vulnerabilities:"
+          cat sql-injection-patterns.txt
+          exit 1
+        fi
+    
+    # XSS Vulnerability Detection
+    - name: XSS Vulnerability Scan
+      run: |
+        echo "🔓 Scanning for XSS vulnerabilities..."
+        find ${{ env.DRUPAL_PATH }}/web/modules/custom -name "*.php" -exec grep -Hn -E "(echo.*\$_GET|echo.*\$_POST)" {} \; > xss-patterns.txt || true
+    
+    # PII Logging Detection
+    - name: PII Logging Detection
+      run: |
+        echo "👤 Scanning for PII in logs..."
+        find ${{ env.DRUPAL_PATH }}/web/modules/custom -name "*.php" -exec grep -Hn -E "(logger.*ssn|logger.*credit)" {} \; > pii-logging.txt || true
+        
+        if [ -s pii-logging.txt ]; then
+          echo "❌ PII found in logging statements:"
+          cat pii-logging.txt
+          exit 1
+        fi
+    
+    # Drupal-specific Semgrep Rules
+    - name: Semgrep Drupal Security Scan
+      uses: semgrep/semgrep-action@v1
+      with:
+        config: .semgrep/drupal-rules.yml
+      env:
+        SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+    
+    # Composer Security Audit
+    - name: Composer Security Audit
+      run: |
+        cd ${{ env.DRUPAL_PATH }}
+        composer audit --format=json > composer-security-audit.json || true
+    
+    # Generate Drupal Security Report
+    - name: Generate Security Report
+      run: ./scripts/security/drupal-security-scan.sh
+    
+    # Upload Security Reports
+    - name: Upload Drupal Security Reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: drupal-security-reports
+        path: security-reports/drupal/

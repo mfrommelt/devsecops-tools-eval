@@ -1,0 +1,84 @@
+# .semgrep/drupal-rules.yml
+rules:
+  - id: drupal-sql-injection
+    patterns:
+      - pattern: |
+          $conn->query("... " . $VAR . " ...")
+      - pattern: |
+          ->query("SELECT * FROM $TABLE WHERE $FIELD = " . $VAR)
+    message: "SQL injection vulnerability in Drupal - use database API"
+    severity: ERROR
+    languages: [php]
+    
+  - id: drupal-xss-vulnerability
+    patterns:
+      - pattern: |
+          echo $_GET[$VAR]
+      - pattern: |
+          print $_POST[$VAR]
+      - pattern: |
+          return '<div>' . $VAR . '</div>'
+    message: "XSS vulnerability - use Html::escape() or Xss::filter()"
+    severity: ERROR
+    languages: [php]
+    
+  - id: drupal-hardcoded-secrets
+    patterns:
+      - pattern: |
+          define('$CONST', '$VALUE')
+      - metavariable-regex:
+          metavariable: $CONST
+          regex: .*(PASSWORD|SECRET|KEY|TOKEN|API).*
+    message: "Hardcoded secret in Drupal constant - use configuration API"
+    severity: ERROR
+    languages: [php]
+    
+  - id: drupal-pii-logging
+    patterns:
+      - pattern: |
+          \Drupal::logger($CHANNEL)->info('... @ssn ...', [...])
+      - pattern: |
+          \Drupal::logger($CHANNEL)->info('... @credit ...', [...])
+      - pattern: |
+          \Drupal::logger($CHANNEL)->info('... @password ...', [...])
+    message: "PII data being logged - compliance violation"
+    severity: ERROR
+    languages: [php]
+    
+  - id: drupal-unsafe-file-operations
+    patterns:
+      - pattern: |
+          file_put_contents($PATH . $FILENAME, $CONTENT)
+      - pattern: |
+          move_uploaded_file($TMP, $PATH . $FILENAME)
+    message: "Unsafe file operation - validate file paths and types"
+    severity: WARNING
+    languages: [php]
+    
+  - id: drupal-missing-access-callback
+    pattern: |
+      $items[$PATH] = [
+        'title' => $TITLE,
+        'page callback' => $CALLBACK,
+        'access callback' => TRUE,
+      ]
+    message: "Missing proper access control - use permission-based access"
+    severity: HIGH
+    languages: [php]
+    
+  - id: drupal-weak-password-handling
+    patterns:
+      - pattern: |
+          md5($PASSWORD)
+      - pattern: |
+          sha1($PASSWORD)
+    message: "Weak password hashing - use Drupal's password API"
+    severity: ERROR
+    languages: [php]
+    
+  - id: drupal-unsafe-markup
+    pattern: |
+      new \Drupal\Core\Render\Markup($VAR)
+    message: "Unsafe markup creation - ensure content is sanitized"
+    severity: WARNING
+    languages: [php]
