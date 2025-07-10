@@ -1,0 +1,39 @@
+# docker-compose.mulesoft.yml
+version: '3.8'
+
+services:
+  mulesoft-runtime:
+    build:
+      context: ./backend/java-mulesoft
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      - MULE_ENV=development
+      - ANYPOINT_ENV=Sandbox
+      - MULE_ENCRYPT_KEY=mule_encryption_key_dev_123
+    volumes:
+      - ./backend/java-mulesoft/src/main/resources:/opt/mule/apps/resources
+      - ./security-reports/mulesoft:/opt/mule/logs/security
+    networks:
+      - csb-test-network
+    depends_on:
+      - postgres
+      - mysql
+
+  anypoint-monitoring:
+    image: mulesoft/anypoint-monitoring:latest
+    ports:
+      - "8083:8080"
+    environment:
+      - ANYPOINT_USERNAME=${ANYPOINT_USERNAME}
+      - ANYPOINT_PASSWORD=${ANYPOINT_PASSWORD}
+      - ANYPOINT_ORG_ID=${ANYPOINT_ORG_ID}
+    networks:
+      - csb-test-network
+    depends_on:
+      - mulesoft-runtime
+
+networks:
+  csb-test-network:
+    external: true

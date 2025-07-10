@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  drupal:
+    build:
+      context: ./backend/php-drupal
+      dockerfile: Dockerfile
+    ports:
+      - "8888:80"
+    environment:
+      - DRUPAL_DATABASE_HOST=mysql
+      - DRUPAL_DATABASE_PORT=3306
+      - DRUPAL_DATABASE_NAME=drupal
+      - DRUPAL_DATABASE_USERNAME=drupal
+      - DRUPAL_DATABASE_PASSWORD=drupal
+      - DRUPAL_HASH_SALT=drupal_hash_salt_for_testing_123
+    volumes:
+      - ./backend/php-drupal/web:/var/www/html
+      - ./backend/php-drupal/config:/var/www/config
+      - ./security-reports/drupal:/var/log/drupal-security
+    networks:
+      - csb-test-network
+    depends_on:
+      - mysql
+      - drupal-security-scanner
+
+  drupal-security-scanner:
+    image: php:8.1-cli
+    working_dir: /var/www/html
+    volumes:
+      - ./backend/php-drupal:/var/www/html
+      - ./scripts/security:/scripts
+      - ./security-reports/drupal:/reports
+    command: /scripts/drupal-security-scan.sh
+    networks:
+      - csb-test-network
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: drupal
+      MYSQL_USER: drupal
+      MYSQL_PASSWORD: drupal
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_drupal_data:/var/lib/mysql
+      - ./databases/mysql/drupal-schema.sql:/docker-entrypoint-initdb.d/01-drupal-schema.sql
+    networks:
+      - csb-test-network
+
+volumes:
+  mysql_drupal_data:
+
+networks:
+  csb-test-network:
+    external: true

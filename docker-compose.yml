@@ -1,0 +1,190 @@
+services:
+  # Frontend Applications
+  react-app:
+    build: 
+      context: ./frontend/react-app
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - REACT_APP_API_URL=http://localhost:8080/api
+    networks:
+      - csb-test-network
+    depends_on:
+      - postgres
+      - mysql
+
+  angular-app:
+    build:
+      context: ./frontend/angular-app
+      dockerfile: Dockerfile
+    ports:
+      - "4200:80"
+    environment:
+      - NODE_ENV=development
+    networks:
+      - csb-test-network
+
+  # Backend Applications
+  django-app:
+    build:
+      context: ./backend/python-django
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DJANGO_SETTINGS_MODULE=csb_project.settings
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/csbdb
+    networks:
+      - csb-test-network
+    depends_on:
+      - postgres
+
+  flask-api:
+    build:
+      context: ./backend/python-flask
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/flaskdb
+    networks:
+      - csb-test-network
+    depends_on:
+      - postgres
+
+  spring-boot-api:
+    build:
+      context: ./backend/java-springboot
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=development
+      - DATABASE_URL=jdbc:postgresql://postgres:5432/springdb
+    networks:
+      - csb-test-network
+    depends_on:
+      - postgres
+
+  dotnet-api:
+    build:
+      context: ./backend/csharp-webapi
+      dockerfile: Dockerfile
+    ports:
+      - "8090:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=dotnetdb;Username=postgres;Password=postgres
+    networks:
+      - csb-test-network
+    depends_on:
+      - postgres
+
+  node-express:
+    build:
+      context: ./backend/node-express
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/nodedb
+    networks:
+      - csb-test-network
+    depends_on:
+      - postgres
+
+  php-drupal:
+    build:
+      context: ./backend/php-drupal
+      dockerfile: Dockerfile
+    ports:
+      - "8888:80"
+    environment:
+      - MYSQL_HOST=mysql
+      - MYSQL_DATABASE=drupal
+      - MYSQL_USER=drupal
+      - MYSQL_PASSWORD=drupal
+    networks:
+      - csb-test-network
+    depends_on:
+      - mysql
+
+  # Databases
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_MULTIPLE_DATABASES: csbdb,flaskdb,springdb,dotnetdb,nodedb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./databases/postgresql/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh
+      - ./databases/postgresql/seed-data.sql:/docker-entrypoint-initdb.d/seed-data.sql
+    networks:
+      - csb-test-network
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: drupal
+      MYSQL_USER: drupal
+      MYSQL_PASSWORD: drupal
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./databases/mysql/schemas:/docker-entrypoint-initdb.d
+    networks:
+      - csb-test-network
+
+  oracle:
+    image: container-registry.oracle.com/database/express:21.3.0-xe
+    environment:
+      ORACLE_PWD: oracle_password_123
+      ORACLE_CHARACTERSET: AL32UTF8
+    ports:
+      - "1521:1521"
+    volumes:
+      - oracle_data:/opt/oracle/oradata
+      - ./databases/oracle/schemas:/docker-entrypoint-initdb.d
+    networks:
+      - csb-test-network
+
+  # Security Testing Tools
+  zap:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    command: zap-baseline.py -t http://spring-boot-api:8080 -r zap-report.html
+    volumes:
+      - ./security/zap:/zap/wrk
+    networks:
+      - csb-test-network
+    depends_on:
+      - spring-boot-api
+      - django-app
+
+  # Development Tools
+  adminer:
+    image: adminer
+    ports:
+      - "8081:8080"
+    networks:
+      - csb-test-network
+    depends_on:
+      - postgres
+      - mysql
+
+volumes:
+  postgres_data:
+  mysql_data:
+  oracle_data:
+
+networks:
+  csb-test-network:
+    driver: bridge
