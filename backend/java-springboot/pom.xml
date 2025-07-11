@@ -1,10 +1,7 @@
-```xml
-<!-- backend/java-springboot/pom.xml -->
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
-         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.csb</groupId>
@@ -12,7 +9,6 @@
     <version>1.0.0</version>
     <packaging>jar</packaging>
 
-    <name>CSB Security Test API</name>
     <description>Spring Boot application for security testing</description>
 
     <parent>
@@ -23,7 +19,7 @@
     </parent>
 
     <properties>
-        <java.version>11</java.version>
+        <java.version>17</java.version>
     </properties>
 
     <dependencies>
@@ -47,19 +43,19 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-collections4</artifactId>
-            <version>4.1</version> <!-- Known vulnerability -->
+            <version>4.1</version>
         </dependency>
         
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.12.1</version> <!-- Older version with vulnerabilities -->
+            <version>2.12.1</version>
         </dependency>
         
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
-            <version>2.14.1</version> <!-- Log4Shell vulnerability -->
+            <version>2.14.1</version>
         </dependency>
         
         <dependency>
