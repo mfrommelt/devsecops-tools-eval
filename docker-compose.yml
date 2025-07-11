@@ -118,7 +118,7 @@ services:
     image: postgres:13
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: hardcoded_spring_db_password_789
       POSTGRES_MULTIPLE_DATABASES: csbdb,flaskdb,springdb,dotnetdb,nodedb
     ports:
       - "5432:5432"

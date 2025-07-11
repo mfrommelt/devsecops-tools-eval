@@ -1,0 +1,21 @@
+<!-- frontend/angular-app/src/index.html -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>CSB Angular Security Test</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  
+  <!-- Intentional security issues -->
+  <script>
+    // Hardcoded API key in HTML (intentional)
+    window.ANGULAR_APP_API_KEY = 'sk_live_angular_client_key_123456';
+    window.ANGULAR_APP_SECRET = 'client_secret_angular_789012';
+  </script>
+</head>
+<body>
+  <app-root></app-root>
+</body>
+</html>
