@@ -157,17 +157,124 @@ services:
     networks:
       - csb-test-network
 
-  # Security Testing Tools
+  # Security Scanning Tools
+  semgrep:
+    image: semgrep/semgrep:latest
+    working_dir: /src
+    volumes:
+      - .:/src:ro  # Mount source code as read-only
+      - ./security-reports:/reports  # Output directory
+    command: >
+      sh -c "
+        echo '🔍 Running Semgrep security scans...' &&
+        mkdir -p /reports/semgrep &&
+        semgrep --config=p/security-audit --config=p/secrets --config=p/php --config=p/javascript --config=p/typescript --config=p/python --config=p/java --config=p/csharp --config=.semgrep/csb-custom-rules.yml --config=.semgrep/java-rules.yml --config=.semgrep/typescript-rules.yml --config=.semgrep/dataweave-rules.yml --config=.semgrep/drupal-rules.yml --sarif --output=/reports/semgrep/comprehensive-scan.sarif /src &&
+        semgrep --config=p/security-audit --config=p/secrets --config=.semgrep/ --json --output=/reports/semgrep/comprehensive-scan.json /src &&
+        echo '✅ Semgrep scan complete - results in security-reports/semgrep/'
+      "
+    environment:
+      - SEMGREP_APP_TOKEN=${SEMGREP_APP_TOKEN:-}
+    networks:
+      - csb-test-network
+    profiles:
+      - security
+      - all
+
+  trufflehog:
+    image: trufflesecurity/trufflehog:latest
+    working_dir: /src
+    volumes:
+      - .:/src:ro  # Mount source code as read-only
+      - ./security-reports:/reports  # Output directory
+    command: >
+      sh -c "
+        echo '🔐 Running TruffleHog secret detection...' &&
+        mkdir -p /reports/trufflehog &&
+        trufflehog git file:///src --only-verified --json > /reports/trufflehog/secrets-verified.json &&
+        trufflehog git file:///src --json > /reports/trufflehog/secrets-all.json &&
+        echo '✅ TruffleHog scan complete - results in security-reports/trufflehog/'
+      "
+    networks:
+      - csb-test-network
+    profiles:
+      - security
+      - all
+
+  # OWASP ZAP for Dynamic Application Security Testing
   zap:
     image: ghcr.io/zaproxy/zaproxy:stable
-    command: zap-baseline.py -t http://spring-boot-api:8080 -r zap-report.html
+    working_dir: /zap/wrk
     volumes:
-      - ./security/zap:/zap/wrk
+      - ./security-reports/zap:/zap/wrk  # Output directory
+    command: >
+      sh -c "
+        echo '🕷️ Running OWASP ZAP baseline scan...' &&
+        zap-baseline.py -t http://spring-boot-api:8080 -r zap-baseline-report.html -J zap-baseline-report.json &&
+        zap-baseline.py -t http://flask-api:5000 -r zap-flask-report.html -J zap-flask-report.json &&
+        zap-baseline.py -t http://django-app:8000 -r zap-django-report.html -J zap-django-report.json &&
+        echo '✅ ZAP scans complete - results in security-reports/zap/'
+      "
     networks:
       - csb-test-network
     depends_on:
       - spring-boot-api
+      - flask-api
       - django-app
+    profiles:
+      - security
+      - all
+
+  # Trivy for Container and Dependency Scanning
+  trivy:
+    image: aquasec/trivy:latest
+    volumes:
+      - .:/src:ro  # Mount source code as read-only
+      - ./security-reports/trivy:/output  # Output directory
+    command: fs --format json --output /output/filesystem-scan.json /src
+    networks:
+      - csb-test-network
+    profiles:
+      - security
+      - all
+
+  # Trivy SARIF format (separate run)
+  trivy-sarif:
+    image: aquasec/trivy:latest
+    volumes:
+      - .:/src:ro  # Mount source code as read-only
+      - ./security-reports/trivy:/output  # Output directory
+    command: fs --format sarif --output /output/filesystem-scan.sarif /src
+    networks:
+      - csb-test-network
+    profiles:
+      - security
+      - all
+
+  # Snyk for Dependency Scanning (requires token)
+  snyk:
+    image: snyk/snyk:node
+    working_dir: /src
+    volumes:
+      - .:/src:ro  # Mount source code as read-only
+      - ./security-reports:/reports  # Output directory
+    command: >
+      sh -c "
+        echo '📦 Running Snyk dependency scans...' &&
+        mkdir -p /reports/snyk &&
+        if [ -n \"$$SNYK_TOKEN\" ]; then
+          snyk test --all-projects --json > /reports/snyk/dependencies-scan.json || true &&
+          echo '✅ Snyk scan complete - results in security-reports/snyk/' ;
+        else
+          echo '⚠️ SNYK_TOKEN not set - skipping Snyk scan' ;
+        fi
+      "
+    environment:
+      - SNYK_TOKEN=${SNYK_TOKEN:-}
+    networks:
+      - csb-test-network
+    profiles:
+      - security
+      - all
 
   # Development Tools
   adminer:
@@ -179,6 +286,20 @@ services:
     depends_on:
       - postgres
       - mysql
+
+  # Security Dashboard (simple web server to view reports)
+  security-dashboard:
+    image: nginx:alpine
+    ports:
+      - "9000:80"
+    volumes:
+      - ./security-reports:/usr/share/nginx/html:ro
+      - ./security/dashboard/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - csb-test-network
+    profiles:
+      - security
+      - all
 
 volumes:
   postgres_data:

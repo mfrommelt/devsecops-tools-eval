@@ -1,4 +1,3 @@
-// backend/csharp-webapi/Program.cs
 using Microsoft.AspNetCore.Mvc;
 using System.Data;
 using Npgsql;
@@ -6,7 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Diagnostics;
 
-// Hardcoded secrets (intentional security issues)
+// Hardcoded connection strings and secrets (intentional)
 var SECRET_KEY = "hardcoded_dotnet_secret_key_123456";
 var DATABASE_PASSWORD = "hardcoded_dotnet_db_password_789";
 var JWT_SECRET = "hardcoded_jwt_secret_dotnet_456";
@@ -43,7 +42,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors();
 app.UseAuthorization();
-app.MapControllers();
 
 // Middleware that logs sensitive data (intentional)
 app.Use(async (context, next) =>
@@ -52,6 +50,21 @@ app.Use(async (context, next) =>
     Console.WriteLine($"Headers: {string.Join(", ", context.Request.Headers.Select(h => $"{h.Key}:{h.Value}"))}");
     Console.WriteLine($"Database password: {DATABASE_PASSWORD}");  // Logging secrets
     await next();
+});
+
+app.MapGet("/", () => new
+{
+    service = "CSB .NET Security Test API",
+    status = "healthy", 
+    version = "1.0.0",
+    timestamp = DateTime.UtcNow,
+    // INTENTIONAL SECURITY ISSUE: Exposing secrets in response
+    secrets = new
+    {
+        api_key = API_KEY,  
+        jwt_secret = JWT_SECRET,
+        aws_access_key = AWS_ACCESS_KEY
+    }
 });
 
 // Health check endpoint
