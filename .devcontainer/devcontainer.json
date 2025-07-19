@@ -1,0 +1,300 @@
+{
+  "name": "CSB DevSecOps Test Environment - Enhanced",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "enableNonRootDocker": true,
+      "moby": true
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "18",
+      "nodeGypDependencies": true,
+      "installYarnUsingApt": true
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.11",
+      "installTools": true,
+      "installJupyterlab": false
+    },
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "17",
+      "installMaven": true,
+      "installGradle": false
+    },
+    "ghcr.io/devcontainers/features/dotnet:2": {
+      "version": "7.0",
+      "installUsingApt": true
+    },
+    "ghcr.io/devcontainers/features/php:1": {
+      "version": "8.1",
+      "installComposer": true
+    },
+    "ghcr.io/devcontainers/features/terraform:1": {
+      "version": "latest"
+    }
+  },
+
+  "runArgs": [
+    "--privileged",
+    "--init"
+  ],
+
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
+    "source=csb-devsecops-node-modules,target=${containerWorkspaceFolder}/node_modules,type=volume"
+  ],
+
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postStartCommand": "echo '🚀 CSB DevSecOps Environment Ready!' && ./verify-setup.sh",
+  
+  "forwardPorts": [
+    3000,   // React App
+    3001,   // Node.js Express
+    4200,   // Angular App
+    5000,   // Flask API
+    5432,   // PostgreSQL
+    3306,   // MySQL
+    1521,   // Oracle
+    8000,   // Django API
+    8080,   // Spring Boot API
+    8081,   // Adminer
+    8082,   // MuleSoft Runtime
+    8090,   // .NET Core API
+    8888,   // PHP/Drupal
+    9000    // Security Dashboard
+  ],
+  
+  "portsAttributes": {
+    "3000": {
+      "label": "React App",
+      "onAutoForward": "notify",
+      "protocol": "http"
+    },
+    "3001": {
+      "label": "Node.js Express API",
+      "onAutoForward": "notify",
+      "protocol": "http"
+    },
+    "4200": {
+      "label": "Angular App",
+      "onAutoForward": "notify",
+      "protocol": "http"
+    },
+    "5000": {
+      "label": "Flask API",
+      "onAutoForward": "notify",
+      "protocol": "http"
+    },
+    "8000": {
+      "label": "Django API",
+      "onAutoForward": "notify",
+      "protocol": "http"
+    },
+    "8080": {
+      "label": "Spring Boot API",
+      "onAutoForward": "notify",
+      "protocol": "http"
+    },
+    "8081": {
+      "label": "Adminer (Database Admin)",
+      "onAutoForward": "silent",
+      "protocol": "http"
+    },
+    "8082": {
+      "label": "MuleSoft Runtime",
+      "onAutoForward": "notify",
+      "protocol": "http"
+    },
+    "8090": {
+      "label": ".NET Core API",
+      "onAutoForward": "notify",
+      "protocol": "http"
+    },
+    "8888": {
+      "label": "PHP/Drupal Application",
+      "onAutoForward": "notify",
+      "protocol": "http"
+    },
+    "9000": {
+      "label": "Security Dashboard",
+      "onAutoForward": "openPreview",
+      "protocol": "http"
+    },
+    "5432": {
+      "label": "PostgreSQL Database",
+      "onAutoForward": "silent",
+      "protocol": "tcp"
+    },
+    "3306": {
+      "label": "MySQL Database",
+      "onAutoForward": "silent",
+      "protocol": "tcp"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.vscode-typescript-next",
+        "ms-python.python",
+        "ms-python.pylint",
+        "ms-python.black-formatter",
+        "redhat.java",
+        "vscjava.vscode-java-pack",
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.vscode-dotnet-runtime",
+        "bmewburn.vscode-intelephense-client",
+        "ms-vscode.docker",
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+        "hashicorp.terraform",
+        "github.vscode-github-actions",
+        "github.copilot",
+        "ms-vsliveshare.vsliveshare",
+        "salesforce.salesforcedx-vscode",
+        "semgrep.semgrep",
+        "snyk-security.snyk-vulnerability-scanner",
+        "ms-vscode.vscode-json",
+        "redhat.vscode-yaml",
+        "ms-vscode-remote.remote-containers",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "bash",
+            "args": ["-l"]
+          }
+        },
+        "docker.enableDockerComposeLanguageService": true,
+        "git.autofetch": true,
+        "git.enableSmartCommit": true,
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.fixAll": true,
+          "source.organizeImports": true
+        },
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.terminal.activateEnvironment": false,
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": true,
+        "java.home": "/usr/local/sdkman/candidates/java/current",
+        "java.configuration.detectJdksAtStart": true,
+        "dotnet.defaultSolution": "backend/csharp-webapi/csb-webapi.sln",
+        "php.validate.executablePath": "/usr/local/bin/php",
+        "files.associations": {
+          "*.dwl": "javascript",
+          "*.yaml": "yaml",
+          "*.yml": "yaml"
+        },
+        "workbench.colorTheme": "Dark+ (default dark)",
+        "workbench.iconTheme": "vs-seti",
+        "explorer.confirmDelete": false,
+        "explorer.confirmDragAndDrop": false,
+        "security.workspace.trust.untrustedFiles": "open"
+      },
+      "tasks": {
+        "version": "2.0.0",
+        "tasks": [
+          {
+            "label": "🚀 Start All Services",
+            "type": "shell",
+            "command": "./start-with-dependencies.sh",
+            "group": "build",
+            "presentation": {
+              "reveal": "always",
+              "panel": "new",
+              "showReuseMessage": false
+            },
+            "problemMatcher": []
+          },
+          {
+            "label": "🔒 Run Security Scans",
+            "type": "shell",
+            "command": "./scripts/security/run-enhanced-security-scans.sh",
+            "group": "test",
+            "presentation": {
+              "reveal": "always",
+              "panel": "new",
+              "showReuseMessage": false
+            },
+            "dependsOn": "🚀 Start All Services",
+            "problemMatcher": []
+          },
+          {
+            "label": "📊 Open Security Dashboard",
+            "type": "shell",
+            "command": "python3 -m http.server 8000 --directory security-reports/dashboard",
+            "group": "test",
+            "presentation": {
+              "reveal": "silent",
+              "panel": "new"
+            },
+            "problemMatcher": []
+          },
+          {
+            "label": "🔍 Verify Setup",
+            "type": "shell",
+            "command": "./verify-setup.sh",
+            "group": "build",
+            "presentation": {
+              "reveal": "always"
+            },
+            "problemMatcher": []
+          },
+          {
+            "label": "🐳 Docker Status",
+            "type": "shell",
+            "command": "docker-compose ps",
+            "group": "build",
+            "presentation": {
+              "reveal": "always"
+            },
+            "problemMatcher": []
+          },
+          {
+            "label": "📋 Service Logs",
+            "type": "shell",
+            "command": "docker-compose logs --tail=50 -f",
+            "group": "build",
+            "presentation": {
+              "reveal": "always",
+              "panel": "new"
+            },
+            "problemMatcher": []
+          }
+        ]
+      }
+    }
+  },
+
+  "remoteEnv": {
+    "NODE_ENV": "development",
+    "FLASK_ENV": "development", 
+    "DJANGO_SETTINGS_MODULE": "csb_project.settings",
+    "ASPNETCORE_ENVIRONMENT": "Development",
+    "SPRING_PROFILES_ACTIVE": "development",
+    "MULE_HOME": "/opt/mule",
+    "DRUPAL_ENV": "development",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONUNBUFFERED": "1",
+    "PIP_TIMEOUT": "60",
+    "PIP_RETRIES": "3",
+    "NPM_CONFIG_TIMEOUT": "60000",
+    "COMPOSER_PROCESS_TIMEOUT": "600",
+    "DOCKER_BUILDKIT": "1",
+    "COMPOSE_DOCKER_CLI_BUILD": "1"
+  },
+
+  "initializeCommand": "echo 'Initializing CSB DevSecOps Test Environment...'",
+  
+  "updateContentCommand": "echo 'Updating dependencies...' && git config --global --add safe.directory ${containerWorkspaceFolder}",
+  
+  "postStartCommand": "echo '🎯 CSB DevSecOps Environment Ready! Run ./verify-setup.sh to check status.'",
+
+  "waitFor": "postCreateCommand",
+
+  "shutdownAction": "stopCompose"
+}
