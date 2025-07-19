@@ -1,8 +1,8 @@
 # CSB DevSecOps Test Repository
 
-[![Security Pipeline](https://github.com/csb/devsecops-test/actions/workflows/ci.yml/badge.svg)](https://github.com/csb/devsecops-test/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Security Rating](https://img.shields.io/badge/Security-Testing-red.svg)](https://github.com/csb/devsecops-test/security)
+[![Security Testing](https://img.shields.io/badge/Security-Testing-red.svg)](https://github.com/csb/devsecops-test/security)
+[![DevSecOps](https://img.shields.io/badge/DevSecOps-Pipeline-blue.svg)](https://github.com/csb/devsecops-test)
 
 > ⚠️ **WARNING**: This repository contains **intentional security vulnerabilities** for testing purposes. **DO NOT** deploy to production environments.
 
@@ -35,26 +35,55 @@ csb-devsecops-test/
 │   ├── python-django/               # Django Web Framework
 │   ├── python-flask/                # Flask API
 │   ├── java-springboot/             # Spring Boot API
-│   ├── java-mulesoft/               # MuleSoft Integration
+│   ├── java-mulesoft/               # MuleSoft Integration & DataWeave
 │   ├── csharp-webapi/               # .NET Core Web API
-│   ├── csharp-etl/                  # C# ETL Tools
+│   ├── csharp-etl/                  # C# ETL Automation Tools
 │   ├── node-express/                # Node.js Express API
-│   └── php-drupal/                  # PHP Drupal Application
+│   └── php-drupal/                  # Drupal 9/10 Application
 ├── 🗄️  databases/                   # Database Configurations
-│   ├── postgresql/                  # PostgreSQL schemas & data
-│   ├── mysql/                       # MySQL schemas & data
-│   └── oracle/                      # Oracle schemas & data
+│   ├── postgresql/                  # PostgreSQL schemas & migrations
+│   ├── mysql/                       # MySQL schemas & migrations
+│   └── oracle/                      # Oracle procedures & schemas
 ├── 🏗️  infrastructure/              # Infrastructure as Code
-│   ├── terraform/                   # Terraform configurations
-│   └── kubernetes/                  # K8s manifests
+│   ├── terraform/                   # Terraform (Azure, AWS, MuleSoft)
+│   ├── docker/                      # Docker configurations
+│   └── pantheon/                    # Pantheon hosting configs
 ├── 🔒 security/                     # Security Configurations
-│   ├── policies/                    # Security policies
-│   ├── zap/                         # OWASP ZAP configs
-│   └── compliance/                  # Compliance frameworks
+│   ├── policies/                    # Network & API security policies
+│   ├── zap/                         # OWASP ZAP DAST configs
+│   ├── sbom/                        # Software Bill of Materials
+│   ├── compliance/                  # SOX, PCI-DSS frameworks
+│   ├── mulesoft/                    # MuleSoft security configs
+│   └── drupal/                      # Drupal security configurations
 ├── 🚀 .github/workflows/            # CI/CD Pipelines
-├── 📝 .semgrep/                     # Custom security rules
-├── 🛠️  scripts/                     # Automation scripts
+│   ├── ci.yml                       # Main CI workflow
+│   ├── security.yml                 # Security scanning
+│   ├── cd.yml                       # Deployment pipeline
+│   ├── infrastructure.yml           # Infrastructure deployment
+│   ├── mulesoft.yml                 # MuleSoft/DataWeave pipeline
+│   └── drupal.yml                   # Drupal security pipeline
+├── 📝 .semgrep/                     # Custom Security Rules
+│   ├── csb-custom-rules.yml         # Custom security rules
+│   ├── java-rules.yml               # Java-specific rules
+│   ├── typescript-rules.yml         # Frontend security rules
+│   ├── dataweave-rules.yml          # DataWeave security rules
+│   └── drupal-rules.yml             # Drupal security rules
+├── 🛠️  scripts/                     # Automation Scripts
+│   ├── setup/                       # Environment setup scripts
+│   ├── security/                    # Security scanning scripts
+│   ├── deployment/                  # Deployment automation
+│   └── mulesoft/                    # MuleSoft-specific scripts
+├── 🐳 docker-compose.yml            # Local Development Setup
+├── 🐳 docker-compose.mulesoft.yml   # MuleSoft Services
+├── 🐳 docker-compose.drupal.yml     # Drupal with Security Tools
+├── 🔧 .devcontainer/                # GitHub Codespaces Config
+├── 🔍 .pre-commit-config.yaml       # Pre-commit Security Hooks
 └── 📚 docs/                         # Documentation
+    ├── SECURITY.md                  # Security guidelines
+    ├── MULESOFT_SECURITY.md         # MuleSoft security guide
+    ├── DRUPAL_SECURITY.md           # Drupal security guide
+    ├── ARCHITECTURE.md              # System architecture
+    └── DEPLOYMENT.md                # Deployment guide
 ```
 
 ## 🚀 Quick Start
@@ -66,7 +95,172 @@ csb-devsecops-test/
 - [Python](https://www.python.org/) (3.9+)
 - [Git](https://git-scm.com/)
 
-### 1. Clone & Setup
+### Option 1: GitHub Codespaces (Recommended) ☁️
+
+**GitHub Codespaces provides a pre-configured cloud development environment with all tools installed.**
+
+#### 🚀 Launch Codespaces
+
+1. **Open in Codespaces:**
+   ```bash
+   # From GitHub repository page, click:
+   # Code → Codespaces → Create codespace on main
+   ```
+   Or use the direct link: [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/csb/devsecops-test)
+
+2. **Wait for Environment Setup:**
+   The codespace will automatically:
+   - ✅ Install all required tools (Docker, Node.js, Python, security tools)
+   - ✅ Configure pre-commit hooks
+   - ✅ Set up development environment
+   - ✅ Install security scanning tools
+
+#### 🔧 Codespaces Configuration
+
+The repository includes a `.devcontainer/devcontainer.json` configuration:
+
+```json
+{
+  "name": "CSB DevSecOps Test Environment",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/node:1": {"version": "18"},
+    "ghcr.io/devcontainers/features/python:1": {"version": "3.9"}
+  },
+  "postCreateCommand": ".devcontainer/setup.sh",
+  "forwardPorts": [3000, 3001, 4200, 5000, 8000, 8080, 8081, 8090, 8888],
+  "portsAttributes": {
+    "3000": {"label": "React App", "onAutoForward": "notify"},
+    "4200": {"label": "Angular App", "onAutoForward": "notify"},
+    "8000": {"label": "Django API", "onAutoForward": "notify"},
+    "8080": {"label": "Spring Boot API", "onAutoForward": "notify"}
+  }
+}
+```
+
+#### 🏃‍♂️ Running Tests in Codespaces
+
+Once your codespace is ready:
+
+```bash
+# 1. Start all services
+chmod +x ./start-with-dependencies.sh
+./start-with-dependencies.sh
+
+# 2. Wait for services to be ready (about 60 seconds)
+sleep 60
+
+# 3. Run comprehensive security scans
+./scripts/security/run-security-scans.sh
+
+# 4. View individual application logs
+docker-compose logs spring-boot-api
+docker-compose logs django-app
+
+# 5. Access applications through forwarded ports
+# Codespaces will automatically forward and provide URLs for:
+# - React App (port 3000)
+# - Angular App (port 4200) 
+# - Django API (port 8000)
+# - Spring Boot API (port 8080)
+# - All other services...
+```
+
+#### 🔒 Security Testing in Codespaces
+
+**Pre-installed Security Tools:**
+```bash
+# Verify security tools are available
+semgrep --version
+snyk --version  
+trufflehog --version
+docker run --rm owasp/zap2docker-stable --version
+
+# Run individual security scans
+semgrep --config=p/security-audit .
+snyk test --all-projects
+trufflehog git file://. --only-verified
+```
+
+**Manual Testing Commands:**
+```bash
+# Test specific vulnerabilities
+curl "http://localhost:8080/api/users/1'; DROP TABLE users; --"  # SQL injection test
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"username":"<script>alert(1)</script>"}' \
+  http://localhost:8080/api/login  # XSS test
+
+# Check for sensitive data exposure
+curl http://localhost:8080/api/users/1 | grep -i "password\|ssn\|credit"
+```
+
+#### 📊 View Security Reports in Codespaces
+
+```bash
+# Generate comprehensive security report
+./scripts/security/run-security-scans.sh
+
+# View reports in VS Code
+code security-reports/security-summary.md
+
+# Open security reports in browser
+python3 -m http.server 8000 --directory security-reports
+# Then access via forwarded port 8000
+```
+
+#### 💡 Codespaces Benefits for Security Testing
+
+✅ **Isolated Environment:** No risk to your local machine  
+✅ **Pre-configured Tools:** All security tools pre-installed  
+✅ **Consistent Environment:** Same setup for all team members  
+✅ **Port Forwarding:** Easy access to all applications  
+✅ **VS Code Integration:** Full IDE experience in browser  
+✅ **Git Integration:** Seamless GitHub integration  
+✅ **Secrets Management:** GitHub secrets available in codespace  
+
+#### 🛠️ Codespaces Troubleshooting
+
+<details>
+<summary>🐛 Services not starting in Codespaces</summary>
+
+```bash
+# Check Docker status
+sudo systemctl status docker
+
+# Restart Docker if needed
+sudo systemctl restart docker
+
+# Check available resources
+df -h
+free -h
+
+# Restart services with more memory
+docker-compose down
+docker-compose up -d --memory=2g
+```
+</details>
+
+<details>
+<summary>🔧 Security tools not working</summary>
+
+```bash
+# Reinstall security tools
+pip install --upgrade semgrep
+npm install -g snyk
+
+# Re-run setup script
+.devcontainer/setup.sh
+
+# Check PATH
+echo $PATH
+which semgrep snyk trufflehog
+```
+</details>
+
+### Option 2: Local Development
+
+#### 1. Clone & Setup
 
 ```bash
 # Clone the repository
@@ -85,6 +279,14 @@ In your GitHub repository settings, add these secrets:
 ```bash
 SEMGREP_APP_TOKEN=your_semgrep_token_here
 SNYK_TOKEN=your_snyk_token_here
+```
+
+**For Codespaces:** These secrets are automatically available in your codespace environment.
+
+**For Local Development:** You'll need to export these as environment variables:
+```bash
+export SEMGREP_APP_TOKEN=your_semgrep_token_here  
+export SNYK_TOKEN=your_snyk_token_here
 ```
 
 ### 3. Start the Application Stack
@@ -117,16 +319,12 @@ docker-compose ps
 
 Our CI/CD pipeline includes comprehensive security scanning:
 
-```mermaid
-graph LR
-    A[Code Commit] --> B[Pre-commit Hooks]
-    B --> C[Secret Scanning]
-    C --> D[SAST Analysis]
-    D --> E[Dependency Scanning]
-    E --> F[Container Scanning]
-    F --> G[DAST Testing]
-    G --> H[Compliance Validation]
-    H --> I[Security Report]
+```
+Code Commit → Pre-commit Hooks → Secret Scanning → SAST Analysis 
+     ↓              ↓                    ↓              ↓
+Dependency Scan → Container Scan → DAST Testing → Compliance Check
+     ↓              ↓                    ↓              ↓
+   Security Report Generated → Findings Published → Action Required
 ```
 
 ### Security Tools Integration
@@ -457,8 +655,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For questions, issues, or support:
 
-- **Security Issues**: security@csb.com
-- **DevOps Support**: devops@csb.com  
+- **Security Issues**: security@cambridgesavings.com
+- **DevOps Support**: mfrommelt@csb.com  
 - **General Questions**: Create a GitHub issue
 
 ---

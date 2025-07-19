@@ -1,223 +1,198 @@
-# CSB DevSecOps Test Repository
+# CSB DevSecOps Test Repository - Enhanced Edition
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Security Testing](https://img.shields.io/badge/Security-Testing-red.svg)](https://github.com/csb/devsecops-test/security)
 [![DevSecOps](https://img.shields.io/badge/DevSecOps-Pipeline-blue.svg)](https://github.com/csb/devsecops-test)
+[![Codespaces Ready](https://img.shields.io/badge/Codespaces-Ready-green.svg)](https://codespaces.new/csb/devsecops-test)
 
 > ⚠️ **WARNING**: This repository contains **intentional security vulnerabilities** for testing purposes. **DO NOT** deploy to production environments.
 
 ## 🎯 Purpose
 
-This repository serves as a comprehensive testing ground for CSB's DevSecOps pipeline, security tools, and CI/CD processes. It contains sample applications across our entire technology stack with intentional security vulnerabilities to validate our security scanning capabilities.
+This repository serves as a comprehensive testing ground for CSB's DevSecOps pipeline, security tools, and CI/CD processes. It contains sample applications across our entire technology stack with intentional security vulnerabilities to validate our security scanning capabilities, including **MuleSoft DataWeave transformations** and **Drupal security testing**.
 
-## 🏗️ Architecture Overview
+## 🏗️ Complete Technology Stack
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    CSB Technology Stack                         │
+│                    CSB Enhanced Technology Stack                │
 ├─────────────────────────────────────────────────────────────────┤
 │  Frontend: React + Angular (TypeScript)                        │
-│  Backend: Python + Java + C# + Node.js + PHP                  │
+│  Backend: Python + Java + C# + Node.js + PHP + MuleSoft       │
 │  Databases: PostgreSQL + MySQL + Oracle                        │
-│  Infrastructure: Azure + AWS + Kubernetes                      │
-│  Security: Multi-tool scanning pipeline                        │
+│  Security: 8+ scanning tools with custom rules                 │
+│  Platform: GitHub Codespaces + Local Development               │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## 📁 Repository Structure
+## 📁 Enhanced Repository Structure
 
 ```
 csb-devsecops-test/
 ├── 🖥️  frontend/                    # Frontend Applications
-│   ├── react-app/                   # React + TypeScript
-│   └── angular-app/                 # Angular + TypeScript
+│   ├── react-app/                   # React + TypeScript (security testing)
+│   └── angular-app/                 # Angular + TypeScript (XSS vulnerabilities)
 ├── ⚙️  backend/                     # Backend Applications  
-│   ├── python-django/               # Django Web Framework
-│   ├── python-flask/                # Flask API
-│   ├── java-springboot/             # Spring Boot API
-│   ├── java-mulesoft/               # MuleSoft Integration & DataWeave
-│   ├── csharp-webapi/               # .NET Core Web API
-│   ├── csharp-etl/                  # C# ETL Automation Tools
-│   ├── node-express/                # Node.js Express API
-│   └── php-drupal/                  # Drupal 9/10 Application
+│   ├── python-django/               # Django Web Framework (SQL injection)
+│   ├── python-flask/                # Flask API (command injection)
+│   ├── java-springboot/             # Spring Boot API (auth bypass)
+│   ├── java-mulesoft/               # MuleSoft + DataWeave (banking vulns)
+│   ├── csharp-webapi/               # .NET Core Web API (crypto issues)
+│   ├── csharp-etl/                  # C# ETL Tools (path traversal)
+│   ├── node-express/                # Node.js Express API (prototype pollution)
+│   └── php-drupal/                  # Drupal Application (access control)
 ├── 🗄️  databases/                   # Database Configurations
-│   ├── postgresql/                  # PostgreSQL schemas & migrations
-│   ├── mysql/                       # MySQL schemas & migrations
-│   └── oracle/                      # Oracle procedures & schemas
-├── 🏗️  infrastructure/              # Infrastructure as Code
-│   ├── terraform/                   # Terraform (Azure, AWS, MuleSoft)
-│   ├── docker/                      # Docker configurations
-│   └── pantheon/                    # Pantheon hosting configs
-├── 🔒 security/                     # Security Configurations
-│   ├── policies/                    # Network & API security policies
-│   ├── zap/                         # OWASP ZAP DAST configs
-│   ├── sbom/                        # Software Bill of Materials
-│   ├── compliance/                  # SOX, PCI-DSS frameworks
-│   ├── mulesoft/                    # MuleSoft security configs
-│   └── drupal/                      # Drupal security configurations
-├── 🚀 .github/workflows/            # CI/CD Pipelines
-│   ├── ci.yml                       # Main CI workflow
-│   ├── security.yml                 # Security scanning
-│   ├── cd.yml                       # Deployment pipeline
-│   ├── infrastructure.yml           # Infrastructure deployment
-│   ├── mulesoft.yml                 # MuleSoft/DataWeave pipeline
-│   └── drupal.yml                   # Drupal security pipeline
+│   ├── postgresql/                  # PostgreSQL schemas & seed data
+│   ├── mysql/                       # MySQL schemas & Drupal data
+│   └── oracle/                      # Oracle procedures & banking schemas
+├── 🔒 security/                     # Security Configurations & Tools
+│   ├── dashboard/                   # Security results dashboard
+│   ├── zap/                         # OWASP ZAP DAST configurations
+│   └── run-containerized-security-scans.sh  # Enhanced scanning
+├── 🚀 .github/workflows/            # Enhanced CI/CD Pipelines
+│   ├── ci.yml                       # Main CI with 8+ security tools
+│   ├── mulesoft.yml                 # DataWeave security pipeline
+│   └── drupal.yml                   # Drupal-specific security tests
 ├── 📝 .semgrep/                     # Custom Security Rules
-│   ├── csb-custom-rules.yml         # Custom security rules
-│   ├── java-rules.yml               # Java-specific rules
-│   ├── typescript-rules.yml         # Frontend security rules
-│   ├── dataweave-rules.yml          # DataWeave security rules
+│   ├── csb-custom-rules.yml         # CSB-specific security patterns
+│   ├── dataweave-rules.yml          # MuleSoft DataWeave security
 │   └── drupal-rules.yml             # Drupal security rules
-├── 🛠️  scripts/                     # Automation Scripts
-│   ├── setup/                       # Environment setup scripts
-│   ├── security/                    # Security scanning scripts
-│   ├── deployment/                  # Deployment automation
-│   └── mulesoft/                    # MuleSoft-specific scripts
-├── 🐳 docker-compose.yml            # Local Development Setup
-├── 🐳 docker-compose.mulesoft.yml   # MuleSoft Services
-├── 🐳 docker-compose.drupal.yml     # Drupal with Security Tools
-├── 🔧 .devcontainer/                # GitHub Codespaces Config
-├── 🔍 .pre-commit-config.yaml       # Pre-commit Security Hooks
-└── 📚 docs/                         # Documentation
-    ├── SECURITY.md                  # Security guidelines
-    ├── MULESOFT_SECURITY.md         # MuleSoft security guide
-    ├── DRUPAL_SECURITY.md           # Drupal security guide
-    ├── ARCHITECTURE.md              # System architecture
-    └── DEPLOYMENT.md                # Deployment guide
+├── 🛠️  scripts/                     # Enhanced Automation Scripts
+│   ├── security/                    # Comprehensive security scanning
+│   │   ├── run-security-scans.sh    # Master security scan script
+│   │   ├── dataweave-security-scan.sh # DataWeave security analysis
+│   │   └── drupal-security-scan.sh  # Drupal security scanning
+│   └── setup/                       # Environment setup scripts
+├── 🔧 Enhanced Startup Scripts
+│   ├── start-with-dependencies.sh   # Proper service startup order
+│   ├── comprehensive-diagnostics.sh # Complete system diagnostics
+│   ├── container-recovery.sh        # Service recovery automation
+│   └── codespaces-specific-service-testing.sh # Codespaces testing
+├── 🐳 docker-compose.yml            # Main development environment
+├── 🐳 docker-compose.mulesoft.yml   # MuleSoft-specific services
+├── 🐳 docker-compose.drupal.yml     # Drupal security testing
+└── 🔧 .devcontainer/                # Enhanced Codespaces Configuration
+    ├── devcontainer.json            # Full tool installation
+    ├── setup.sh                     # Automated environment setup
+    └── update.sh                    # Tool updates and maintenance
 ```
 
-## 🚀 Quick Start
-
-### Prerequisites
-
-- [Docker](https://docs.docker.com/get-docker/) & [Docker Compose](https://docs.docker.com/compose/install/)
-- [Node.js](https://nodejs.org/) (v16+)
-- [Python](https://www.python.org/) (3.9+)
-- [Git](https://git-scm.com/)
+## 🚀 Quick Start Options
 
 ### Option 1: GitHub Codespaces (Recommended) ☁️
 
-**GitHub Codespaces provides a pre-configured cloud development environment with all tools installed.**
+**🎯 The fastest way to get started - everything is pre-configured!**
 
-#### 🚀 Launch Codespaces
+#### 🚀 One-Click Launch
 
-1. **Open in Codespaces:**
-   ```bash
-   # From GitHub repository page, click:
-   # Code → Codespaces → Create codespace on main
-   ```
-   Or use the direct link: [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/csb/devsecops-test)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/csb/devsecops-test)
 
-2. **Wait for Environment Setup:**
-   The codespace will automatically:
-   - ✅ Install all required tools (Docker, Node.js, Python, security tools)
-   - ✅ Configure pre-commit hooks
-   - ✅ Set up development environment
-   - ✅ Install security scanning tools
+1. **Click the Codespaces button above** or go to your repository page
+2. **Click:** Code → Codespaces → Create codespace on main
+3. **Wait 3-5 minutes** for the environment to be ready
+4. **All tools will be automatically installed and configured**
 
-#### 🔧 Codespaces Configuration
+#### 🔧 What Gets Installed Automatically
 
-The repository includes a `.devcontainer/devcontainer.json` configuration:
-
-```json
-{
-  "name": "CSB DevSecOps Test Environment",
-  "image": "mcr.microsoft.com/devcontainers/universal:2",
-  "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
-    "ghcr.io/devcontainers/features/node:1": {"version": "18"},
-    "ghcr.io/devcontainers/features/python:1": {"version": "3.9"}
-  },
-  "postCreateCommand": ".devcontainer/setup.sh",
-  "forwardPorts": [3000, 3001, 4200, 5000, 8000, 8080, 8081, 8090, 8888],
-  "portsAttributes": {
-    "3000": {"label": "React App", "onAutoForward": "notify"},
-    "4200": {"label": "Angular App", "onAutoForward": "notify"},
-    "8000": {"label": "Django API", "onAutoForward": "notify"},
-    "8080": {"label": "Spring Boot API", "onAutoForward": "notify"}
-  }
-}
-```
-
-#### 🏃‍♂️ Running Tests in Codespaces
-
-Once your codespace is ready:
+The `.devcontainer/setup.sh` script automatically installs:
 
 ```bash
-# 1. Start all services
-chmod +x ./start-with-dependencies.sh
+✅ Security Tools:
+  - TruffleHog (secret detection)
+  - Semgrep (static analysis)
+  - Snyk (dependency scanning)
+  - tfsec (Terraform security)
+  - Checkov (infrastructure security)
+  - pre-commit (security hooks)
+
+✅ Development Tools:
+  - Docker & Docker Compose
+  - Node.js 18, Python 3.9, Java 11
+  - .NET 6.0, PHP 8.1
+  - MuleSoft CLI, Anypoint CLI
+  - Drush (Drupal), Composer
+
+✅ Databases:
+  - PostgreSQL, MySQL, Oracle
+  - Pre-configured with test data
+  - Multiple databases per service
+```
+
+#### 🏃‍♂️ Start Everything in Codespaces
+
+Once your Codespace is ready, run the enhanced startup script:
+
+```bash
+# 🚀 Start all services with proper dependency order
 ./start-with-dependencies.sh
 
-# 2. Wait for services to be ready (about 60 seconds)
-sleep 60
+# ⏳ This script will:
+# 1. Start databases first (PostgreSQL, MySQL, Oracle)
+# 2. Wait for databases to be ready
+# 3. Start backend services (Spring Boot, Django, Flask, etc.)
+# 4. Start frontend services (React, Angular)
+# 5. Perform health checks on all services
+# 6. Show you exactly what's working and what needs attention
 
-# 3. Run comprehensive security scans
+# 🔍 Run comprehensive diagnostics if needed
+./comprehensive-diagnostics.sh
+
+# 🔧 Recover any failed services
+./container-recovery.sh
+```
+
+#### 🌐 Access Your Applications in Codespaces
+
+**Automatic Port Forwarding:** Codespaces automatically forwards these ports and provides URLs:
+
+| Service | Codespaces URL | Description |
+|---------|---------------|-------------|
+| **React App** | `https://{codespace}-3000.{domain}/` | Frontend React application |
+| **Angular App** | `https://{codespace}-4200.{domain}/` | Frontend Angular application |
+| **Spring Boot API** | `https://{codespace}-8080.{domain}/api/health` | Java API with SQL injection |
+| **Django API** | `https://{codespace}-8000.{domain}/` | Python API with auth bypass |
+| **Flask API** | `https://{codespace}-5000.{domain}/` | Python API with command injection |
+| **.NET Core API** | `https://{codespace}-8090.{domain}/` | C# API with crypto issues |
+| **Node.js API** | `https://{codespace}-3001.{domain}/` | Node API with prototype pollution |
+| **PHP/Drupal** | `https://{codespace}-8888.{domain}/` | Drupal with access control issues |
+| **Adminer** | `https://{codespace}-8081.{domain}/` | Database administration |
+| **Security Dashboard** | `https://{codespace}-9000.{domain}/` | Security scan results |
+
+**💡 Pro Tip:** Click the "Ports" tab in VS Code to see all forwarded ports and click the globe icon to open them in your browser.
+
+#### 🔒 Run Security Scans in Codespaces
+
+```bash
+# 🔍 Run comprehensive security analysis (100+ expected findings)
 ./scripts/security/run-security-scans.sh
 
-# 4. View individual application logs
-docker-compose logs spring-boot-api
-docker-compose logs django-app
+# 📊 Run containerized security scans with dashboard
+./security/run-containerized-security-scans.sh
 
-# 5. Access applications through forwarded ports
-# Codespaces will automatically forward and provide URLs for:
-# - React App (port 3000)
-# - Angular App (port 4200) 
-# - Django API (port 8000)
-# - Spring Boot API (port 8080)
-# - All other services...
+# 🌐 Start security dashboard
+docker-compose --profile security up -d security-dashboard
+
+# 📊 View results at: https://{codespace}-9000.{domain}/
 ```
 
-#### 🔒 Security Testing in Codespaces
-
-**Pre-installed Security Tools:**
-```bash
-# Verify security tools are available
-semgrep --version
-snyk --version  
-trufflehog --version
-docker run --rm owasp/zap2docker-stable --version
-
-# Run individual security scans
-semgrep --config=p/security-audit .
-snyk test --all-projects
-trufflehog git file://. --only-verified
-```
-
-**Manual Testing Commands:**
-```bash
-# Test specific vulnerabilities
-curl "http://localhost:8080/api/users/1'; DROP TABLE users; --"  # SQL injection test
-curl -X POST -H "Content-Type: application/json" \
-  -d '{"username":"<script>alert(1)</script>"}' \
-  http://localhost:8080/api/login  # XSS test
-
-# Check for sensitive data exposure
-curl http://localhost:8080/api/users/1 | grep -i "password\|ssn\|credit"
-```
-
-#### 📊 View Security Reports in Codespaces
+#### 🧪 Test Individual Vulnerabilities in Codespaces
 
 ```bash
-# Generate comprehensive security report
-./scripts/security/run-security-scans.sh
+# 💉 Test SQL injection
+curl "https://{codespace}-8080.{domain}/api/users/1'; DROP TABLE users; --"
 
-# View reports in VS Code
-code security-reports/security-summary.md
+# 🔓 Test XSS
+curl "https://{codespace}-3000.{domain}/?search=<script>alert('XSS')</script>"
 
-# Open security reports in browser
-python3 -m http.server 8000 --directory security-reports
-# Then access via forwarded port 8000
+# 🔐 Test secret exposure
+curl "https://{codespace}-8080.{domain}/api/health" | grep -i "password\|secret\|key"
+
+# 📊 Test DataWeave vulnerabilities
+./scripts/security/dataweave-security-scan.sh
+
+# 🌐 Test Drupal vulnerabilities
+./scripts/security/drupal-security-scan.sh
 ```
-
-#### 💡 Codespaces Benefits for Security Testing
-
-✅ **Isolated Environment:** No risk to your local machine  
-✅ **Pre-configured Tools:** All security tools pre-installed  
-✅ **Consistent Environment:** Same setup for all team members  
-✅ **Port Forwarding:** Easy access to all applications  
-✅ **VS Code Integration:** Full IDE experience in browser  
-✅ **Git Integration:** Seamless GitHub integration  
-✅ **Secrets Management:** GitHub secrets available in codespace  
 
 #### 🛠️ Codespaces Troubleshooting
 
@@ -225,40 +200,49 @@ python3 -m http.server 8000 --directory security-reports
 <summary>🐛 Services not starting in Codespaces</summary>
 
 ```bash
-# Check Docker status
+# 🔍 Run diagnostics
+./codespaces-specific-service-testing.sh
+
+# 🔧 Check Docker status
 sudo systemctl status docker
 
-# Restart Docker if needed
-sudo systemctl restart docker
+# 🚀 Restart services
+./container-recovery.sh
 
-# Check available resources
-df -h
-free -h
-
-# Restart services with more memory
-docker-compose down
-docker-compose up -d --memory=2g
+# 📊 Check resources
+df -h && free -h
 ```
 </details>
 
 <details>
-<summary>🔧 Security tools not working</summary>
+<summary>🔒 Security tools not working</summary>
 
 ```bash
-# Reinstall security tools
-pip install --upgrade semgrep
-npm install -g snyk
-
-# Re-run setup script
+# 🔧 Reinstall tools
 .devcontainer/setup.sh
 
-# Check PATH
-echo $PATH
-which semgrep snyk trufflehog
+# ✅ Verify installations
+semgrep --version
+snyk --version
+trufflehog --version
+
+# 🔑 Check GitHub secrets (for private repos)
+echo $SEMGREP_APP_TOKEN
+echo $SNYK_TOKEN
 ```
 </details>
 
-### Option 2: Local Development
+### Option 2: Local Development Setup
+
+<details>
+<summary>📖 Click to expand local development instructions</summary>
+
+#### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) & [Docker Compose](https://docs.docker.com/compose/install/)
+- [Node.js](https://nodejs.org/) (v18+)
+- [Python](https://www.python.org/) (3.9+)
+- [Git](https://git-scm.com/)
 
 #### 1. Clone & Setup
 
@@ -272,226 +256,335 @@ chmod +x scripts/setup/setup-dev-environment.sh
 ./scripts/setup/setup-dev-environment.sh
 ```
 
-### 2. Configure GitHub Secrets
-
-In your GitHub repository settings, add these secrets:
+#### 2. Configure Environment Variables
 
 ```bash
-SEMGREP_APP_TOKEN=your_semgrep_token_here
-SNYK_TOKEN=your_snyk_token_here
-```
-
-**For Codespaces:** These secrets are automatically available in your codespace environment.
-
-**For Local Development:** You'll need to export these as environment variables:
-```bash
-export SEMGREP_APP_TOKEN=your_semgrep_token_here  
+# Create .env file with security tool tokens
+export SEMGREP_APP_TOKEN=your_semgrep_token_here
 export SNYK_TOKEN=your_snyk_token_here
 ```
 
-### 3. Start the Application Stack
+#### 3. Start Services
 
 ```bash
-# Start all services
-docker-compose up -d
+# Use the enhanced startup script
+./start-with-dependencies.sh
 
-# Verify services are running
-docker-compose ps
+# Or start manually with dependency order
+docker-compose up -d postgres mysql oracle
+sleep 30
+docker-compose up -d spring-boot-api django-app flask-api
+docker-compose up -d react-app angular-app
 ```
 
-### 4. Access Applications
+</details>
 
-| Service | URL | Description |
-|---------|-----|-------------|
-| **React App** | http://localhost:3000 | Frontend React application |
-| **Angular App** | http://localhost:4200 | Frontend Angular application |
-| **Django API** | http://localhost:8000 | Python Django backend |
-| **Flask API** | http://localhost:5000 | Python Flask API |
-| **Spring Boot** | http://localhost:8080 | Java Spring Boot API |
-| **.NET Core** | http://localhost:8090 | C# .NET Core Web API |
-| **Node.js API** | http://localhost:3001 | Node.js Express API |
-| **PHP/Drupal** | http://localhost:8888 | PHP Drupal application |
-| **Adminer** | http://localhost:8081 | Database administration |
+## 🔒 Enhanced Security Testing
 
-## 🔒 Security Testing
-
-### Automated Security Pipeline
-
-Our CI/CD pipeline includes comprehensive security scanning:
-
-```
-Code Commit → Pre-commit Hooks → Secret Scanning → SAST Analysis 
-     ↓              ↓                    ↓              ↓
-Dependency Scan → Container Scan → DAST Testing → Compliance Check
-     ↓              ↓                    ↓              ↓
-   Security Report Generated → Findings Published → Action Required
-```
-
-### Security Tools Integration
-
-| Tool | Purpose | Coverage |
-|------|---------|----------|
-| **GitHub Advanced Security** | SAST, Secrets, Dependencies | Native GitHub integration |
-| **Semgrep** | Custom SAST rules | All languages + custom CSB rules |
-| **Snyk** | Dependency vulnerabilities | All package managers |
-| **OWASP ZAP** | Dynamic security testing | All web applications |
-| **Trivy** | Container vulnerability scanning | All Docker images |
-| **tfsec** | Terraform security analysis | Infrastructure as Code |
-| **Checkov** | Infrastructure security | Multi-cloud policies |
-| **TruffleHog** | Advanced secret detection | Git history + custom patterns |
-
-### Manual Security Scans
-
-```bash
-# Run comprehensive security analysis
-./scripts/security/run-security-scans.sh
-
-# View security reports
-ls -la security-reports/
-
-# Generate compliance report
-./scripts/security/compliance-check.sh
-```
-
-## 🧪 Intentional Vulnerabilities
-
-This repository contains **intentional security vulnerabilities** for testing purposes:
-
-### 🔴 Critical Findings (Expected: 20+)
-- **Hardcoded Secrets**: Database passwords, API keys, AWS credentials
-- **SQL Injection**: Dynamic query construction in all backend languages  
-- **Command Injection**: Unsafe system command execution
-- **Path Traversal**: Unvalidated file path operations
-
-### 🟡 High Findings (Expected: 30+)
-- **Weak Cryptography**: MD5 hashing, weak random number generation
-- **Cross-Site Scripting (XSS)**: Unsafe HTML rendering
-- **Insecure Direct Object References**: Unvalidated user input
-- **Security Misconfiguration**: Debug mode, overly permissive settings
-
-### 🟠 Medium Findings (Expected: 50+)
-- **Vulnerable Dependencies**: Outdated packages with known CVEs
-- **Information Disclosure**: Logging of sensitive data
-- **Insufficient Input Validation**: Missing sanitization
-- **Insecure Communication**: HTTP instead of HTTPS
-
-## 📊 Expected Security Scan Results
+### 🎯 Expected Security Findings
 
 When you run the complete security pipeline, expect these findings:
 
 ```
-🔍 Security Scan Summary
-├── 📊 Total Findings: 100+
-├── 🔴 Critical: 20+ findings
-├── 🟡 High: 30+ findings  
-├── 🟠 Medium: 50+ findings
+🔍 Comprehensive Security Scan Results
+├── 📊 Total Findings: 150+ security issues
+├── 🔴 Critical: 35+ findings
+├── 🟡 High: 60+ findings  
+├── 🟠 Medium: 55+ findings
 └── 🟢 Low: 25+ findings
 
-🛠️ Tools Results:
-├── CodeQL: 25+ code quality & security issues
-├── Semgrep: 40+ SAST findings (custom rules)
-├── Snyk: 30+ dependency vulnerabilities
-├── Trivy: 20+ container vulnerabilities
-├── OWASP ZAP: 15+ web application issues
-├── tfsec: 10+ infrastructure misconfigurations
-└── TruffleHog: 15+ hardcoded secrets
+🛠️ Tool-Specific Results:
+├── 🔐 TruffleHog: 25+ hardcoded secrets
+├── 🔍 Semgrep: 50+ SAST findings (custom CSB rules)
+├── 📦 Snyk: 40+ dependency vulnerabilities
+├── 🔍 Trivy: 30+ container vulnerabilities
+├── 🕷️ OWASP ZAP: 20+ web application issues
+├── 🏗️ tfsec: 15+ infrastructure misconfigurations
+├── 📊 DataWeave: 20+ banking compliance violations
+└── 🌐 Drupal: 15+ CMS-specific vulnerabilities
 ```
 
-## 🏛️ Compliance Testing
+### 🔧 Security Tools Integration
 
-### Banking Regulations Covered
+| Tool | Purpose | Coverage | Expected Findings |
+|------|---------|----------|-------------------|
+| **TruffleHog** | Advanced secret detection | Git history + custom patterns | 25+ secrets |
+| **Semgrep** | Custom SAST rules | All languages + CSB rules | 50+ issues |
+| **Snyk** | Dependency vulnerabilities | All package managers | 40+ CVEs |
+| **OWASP ZAP** | Dynamic security testing | All web applications | 20+ web vulns |
+| **Trivy** | Container vulnerability scanning | All Docker images | 30+ container issues |
+| **tfsec** | Terraform security analysis | Infrastructure as Code | 15+ IaC issues |
+| **Checkov** | Infrastructure security | Multi-cloud policies | 10+ policy violations |
+| **CodeQL** | GitHub native SAST | Code quality & security | 25+ code issues |
 
-- **SOX (Sarbanes-Oxley)**: Audit trails, financial data protection
-- **PCI DSS**: Credit card data security requirements  
-- **SOC 2 Type II**: Security and availability controls
-- **NIST Cybersecurity Framework**: Comprehensive security controls
+### 📊 Security Dashboard
 
-### Compliance Validation
+Access the comprehensive security dashboard:
 
 ```bash
-# Run compliance checks
+# Start security dashboard
+docker-compose --profile security up -d security-dashboard
+
+# View at: http://localhost:9000 (local) or Codespaces forwarded URL
+```
+
+**Dashboard Features:**
+- 📊 **Real-time Results**: Live security scan results
+- 🔍 **Tool-by-Tool Breakdown**: Individual tool findings
+- 📈 **Trend Analysis**: Security posture over time
+- 🎯 **Expected vs Actual**: Compare expected findings with actual results
+- 📋 **Compliance Reports**: SOX, PCI DSS, SOC 2 compliance status
+
+### 🧪 Intentional Vulnerabilities by Technology
+
+#### 🔴 Critical Vulnerabilities (35+ Expected)
+
+| Technology | Vulnerability Type | Example | Impact |
+|------------|-------------------|---------|--------|
+| **All Backend APIs** | Hardcoded Secrets | Database passwords, API keys | Data breach |
+| **Spring Boot** | SQL Injection | Dynamic query construction | Database compromise |
+| **Flask** | Command Injection | Unsafe system execution | Server takeover |
+| **Django** | Authentication Bypass | Disabled CSRF protection | Session hijacking |
+| **Node.js** | Prototype Pollution | Unsafe object manipulation | RCE potential |
+| **Drupal** | Access Control Issues | Missing auth callbacks | Privilege escalation |
+| **DataWeave** | PII Exposure | Credit card logging | Compliance violations |
+| **.NET Core** | Weak Cryptography | MD5 password hashing | Credential compromise |
+
+#### 🟡 High Vulnerabilities (60+ Expected)
+
+| Technology | Vulnerability Type | Description | Risk Level |
+|------------|-------------------|-------------|------------|
+| **React/Angular** | XSS Vulnerabilities | Unsafe HTML rendering | High |
+| **All APIs** | Information Disclosure | Secrets in error messages | High |
+| **MuleSoft** | Banking Compliance | Hardcoded banking credentials | High |
+| **Drupal** | File Upload Issues | Path traversal vulnerabilities | High |
+| **All Containers** | Vulnerable Dependencies | Outdated packages with CVEs | High |
+
+### 🏦 Banking & Compliance Testing
+
+#### Regulatory Frameworks Covered
+
+- **🏛️ SOX (Sarbanes-Oxley)**: Audit trails, financial data protection
+- **💳 PCI DSS**: Credit card data security requirements  
+- **🔐 SOC 2 Type II**: Security and availability controls
+- **📋 NIST Cybersecurity Framework**: Comprehensive security controls
+- **🏦 Banking Regulations**: FFIEC cybersecurity guidelines
+
+#### Compliance Validation
+
+```bash
+# Run comprehensive compliance checks
 ./scripts/security/compliance-check.sh
 
 # Generate compliance reports
 cat security-reports/compliance-report.md
+
+# DataWeave banking compliance
+./scripts/security/dataweave-security-scan.sh
+
+# Drupal security compliance
+./scripts/security/drupal-security-scan.sh
 ```
 
-## 🏗️ Infrastructure Testing
+## 🎯 Testing Specific Technologies
 
-### Cloud Platforms
-- **Azure**: Primary cloud with AKS, App Service, Key Vault
-- **AWS**: Secondary cloud with EKS, RDS, Secrets Manager
+### 📊 DataWeave (MuleSoft) Security Testing
 
-### Infrastructure as Code
-- **Terraform**: Multi-cloud infrastructure provisioning
-- **Kubernetes**: Container orchestration with security policies
+**Expected DataWeave Findings: 20+**
 
-### Security Policies
-- Network security groups and policies
-- Pod security policies and standards
-- RBAC and identity management
-- Secrets management and rotation
+```bash
+# Run DataWeave-specific security analysis
+./scripts/security/dataweave-security-scan.sh
 
-## 🚀 CI/CD Pipeline
+# Expected findings:
+# - Hardcoded banking API credentials
+# - PII exposure in transformation logs  
+# - SQL injection in dynamic queries
+# - Weak encryption implementations
+# - Compliance violations (PCI DSS, SOX)
+
+# View results
+cat security-reports/dataweave/dataweave-security-summary.md
+```
+
+### 🌐 Drupal Security Testing
+
+**Expected Drupal Findings: 15+**
+
+```bash
+# Run Drupal-specific security analysis
+./scripts/security/drupal-security-scan.sh
+
+# Expected findings:
+# - SQL injection in custom modules
+# - XSS vulnerabilities in themes
+# - Missing access control callbacks
+# - PII logging violations
+# - Hardcoded database credentials
+
+# View results
+cat security-reports/drupal/drupal-security-summary.md
+```
+
+## 🚀 Enhanced CI/CD Pipeline
 
 ### GitHub Actions Workflows
 
-| Workflow | Trigger | Purpose |
-|----------|---------|---------|
-| **ci.yml** | Push, PR | Comprehensive security testing |
-| **security.yml** | Daily | Scheduled security scans |
-| **cd.yml** | Main branch | Deployment pipeline |
-| **infrastructure.yml** | IaC changes | Infrastructure security |
+| Workflow | Trigger | Purpose | Tools Used |
+|----------|---------|---------|------------|
+| **ci.yml** | Push, PR | Comprehensive security testing | 8+ security tools |
+| **security.yml** | Daily | Scheduled security scans | Full tool suite |
+| **mulesoft.yml** | DataWeave changes | MuleSoft security pipeline | DataWeave rules + Semgrep |
+| **drupal.yml** | Drupal changes | Drupal security testing | PHP security tools |
+| **cd.yml** | Main branch | Deployment pipeline | Security gates |
+| **infrastructure.yml** | IaC changes | Infrastructure security | tfsec + Checkov |
 
-### Pipeline Stages
+### Pipeline Security Gates
 
-1. **Pre-commit Security Gates**
-   - Secret scanning with TruffleHog
-   - Basic SAST with Semgrep
-   - Code formatting and linting
-
-2. **Build & Security Analysis**
-   - Multi-language compilation
-   - Comprehensive SAST scanning
-   - Dependency vulnerability analysis
-   - Container security scanning
-
-3. **Dynamic Security Testing**
-   - OWASP ZAP web application scanning
-   - API security testing
-   - Integration security tests
-
-4. **Compliance & Reporting**
-   - Regulatory compliance validation
-   - Security report generation
-   - Artifact publication
-
-## 🛠️ Development Workflow
-
-### Local Development
-
-```bash
-# Install pre-commit hooks
-pre-commit install
-
-# Start development environment
-docker-compose up -d
-
-# Run tests for specific application
-cd backend/java-springboot
-./mvnw test
-
-# Run security scans locally
-semgrep --config=p/security-audit --config=.semgrep/csb-custom-rules.yml
+```mermaid
+graph LR
+    A[Code Commit] --> B[Pre-commit Hooks]
+    B --> C[Secret Scanning]
+    C --> D[SAST Analysis]
+    D --> E[Dependency Scan]
+    E --> F[Container Scan]
+    F --> G[DAST Testing]
+    G --> H[Compliance Check]
+    H --> I[Security Report]
+    I --> J[Deploy/Block]
 ```
 
-### Contributing Security Tests
+## 📈 Monitoring & Metrics
 
-1. **Add New Vulnerabilities**:
+### 🎯 Security Metrics Dashboard
+
+Track your security pipeline effectiveness:
+
+```bash
+# View security metrics
+cat security-reports/master-security-summary.md
+
+# Expected KPIs:
+├── 🎯 Vulnerability Detection Rate: 95%+
+├── 📊 False Positive Rate: <10%
+├── ⏱️ Scan Duration: <15 minutes
+├── 🔄 Pipeline Success Rate: >95%
+└── 📋 Compliance Score: 85% (with intentional issues)
+```
+
+### 📊 Expected vs Actual Results
+
+The security dashboard shows a comparison table:
+
+| Security Tool | Expected Findings | Typical Actual | Status |
+|---------------|-------------------|----------------|--------|
+| TruffleHog | 25+ secrets | 23-27 | ✅ Normal |
+| Semgrep | 50+ issues | 48-55 | ✅ Normal |
+| Snyk | 40+ CVEs | 35-45 | ✅ Normal |
+| OWASP ZAP | 20+ web vulns | 18-25 | ✅ Normal |
+| Trivy | 30+ container issues | 28-35 | ✅ Normal |
+
+## 🆘 Enhanced Troubleshooting
+
+### 🔧 Automated Diagnostics
+
+```bash
+# 🔍 Run comprehensive system diagnostics
+./comprehensive-diagnostics.sh
+
+# 🚀 Automatic service recovery
+./container-recovery.sh
+
+# 🌐 Codespaces-specific testing
+./codespaces-specific-service-testing.sh
+```
+
+### Common Issues & Solutions
+
+<details>
+<summary>🐛 "Services not starting properly"</summary>
+
+**Solution:**
+```bash
+# Use the proper startup sequence
+./start-with-dependencies.sh
+
+# If that fails, diagnose the issue
+./comprehensive-diagnostics.sh
+
+# Recover failed services
+./container-recovery.sh
+
+# Check individual service logs
+docker-compose logs spring-boot-api
+```
+</details>
+
+<details>
+<summary>🔒 "Security scans returning no results"</summary>
+
+**Solution:**
+```bash
+# Verify tools are installed
+semgrep --version
+snyk --version
+trufflehog --version
+
+# Run with debug output
+./scripts/security/run-security-scans.sh --verbose
+
+# Check for GitHub secrets (in Codespaces)
+echo $SEMGREP_APP_TOKEN
+echo $SNYK_TOKEN
+```
+</details>
+
+<details>
+<summary>💾 "Database connection failures"</summary>
+
+**Solution:**
+```bash
+# Check database startup order
+docker-compose ps postgres mysql oracle
+
+# Restart databases first
+docker-compose restart postgres mysql
+sleep 30
+
+# Then restart dependent services
+docker-compose restart spring-boot-api django-app
+```
+</details>
+
+<details>
+<summary>🌐 "Codespaces port forwarding issues"</summary>
+
+**Solution:**
+```bash
+# Check port forwarding in VS Code
+# 1. Open "Ports" tab
+# 2. Look for services on ports 3000, 4200, 8080, etc.
+# 3. Click the globe icon to open in browser
+
+# Manual port check
+./codespaces-specific-service-testing.sh
+
+# Restart port forwarding
+code --reload-window
+```
+</details>
+
+## 🤝 Contributing
+
+We welcome contributions to improve our security testing capabilities:
+
+### 🛡️ Adding New Security Tests
+
+1. **Add Intentional Vulnerabilities**:
    ```bash
-   # Add new intentional vulnerability
+   # Add new vulnerability pattern
    # Update corresponding test cases
-   # Document the vulnerability type
+   # Document the vulnerability type in README
    ```
 
 2. **Create Custom Security Rules**:
@@ -505,124 +598,27 @@ semgrep --config=p/security-audit --config=.semgrep/csb-custom-rules.yml
        severity: ERROR
    ```
 
-3. **Update Test Cases**:
+3. **Update Expected Findings**:
    ```bash
-   # Add tests that verify security scanners detect new vulnerabilities
-   # Update expected findings count
+   # Update security scan expectations
    # Document new compliance requirements
+   # Add to security dashboard metrics
    ```
 
-## 📈 Monitoring & Metrics
+## 📚 Documentation
 
-### Security Metrics Dashboard
+### 📖 Detailed Guides
+- [Security Testing Guide](docs/SECURITY.md) - Comprehensive security testing procedures
+- [MuleSoft Security Guide](docs/MULESOFT_SECURITY.md) - DataWeave security best practices
+- [Drupal Security Guide](docs/DRUPAL_SECURITY.md) - Drupal-specific security testing
+- [Architecture Overview](docs/ARCHITECTURE.md) - System architecture and design
+- [Deployment Guide](docs/DEPLOYMENT.md) - Production deployment considerations
 
-Track the effectiveness of your security pipeline:
-
-- **Vulnerability Detection Rate**: % of vulnerabilities caught by scanning
-- **False Positive Rate**: Quality of security tool configurations  
-- **Time to Detection**: How quickly new vulnerabilities are found
-- **Time to Remediation**: Speed of vulnerability fixes
-- **Pipeline Performance**: Impact of security scanning on build times
-
-### Key Performance Indicators
-
-```bash
-# Security Pipeline KPIs
-├── 🎯 Vulnerability Detection: 95%+ 
-├── 📊 False Positive Rate: <10%
-├── ⏱️ Scan Duration: <15 minutes
-├── 🔄 Pipeline Success Rate: >95%
-└── 📋 Compliance Score: 100%
-```
-
-## 🆘 Troubleshooting
-
-### Common Issues
-
-<details>
-<summary>🐛 Services not starting properly</summary>
-
-```bash
-# Check service logs
-docker-compose logs [service-name]
-
-# Restart specific service
-docker-compose restart [service-name]
-
-# Rebuild containers
-docker-compose up --build -d
-```
-</details>
-
-<details>
-<summary>🔒 Security scans failing</summary>
-
-```bash
-# Check tool installations
-semgrep --version
-snyk --version
-trufflehog --version
-
-# Verify GitHub secrets are set
-# Check API token permissions
-# Review scan configurations
-```
-</details>
-
-<details>
-<summary>💾 Database connection issues</summary>
-
-```bash
-# Check database containers
-docker-compose ps postgres mysql oracle
-
-# Verify database initialization
-docker-compose logs postgres
-
-# Connect manually to test
-docker-compose exec postgres psql -U postgres -d csbdb
-```
-</details>
-
-### Getting Help
-
-- 📖 **Documentation**: Check the `/docs` folder for detailed guides
-- 🎫 **Issues**: Create GitHub issues for bugs or feature requests  
-- 💬 **Slack**: #devops-support for real-time assistance
-- 📧 **Email**: devops@csb.com for security-related questions
-
-## 📚 Additional Resources
-
-### Documentation
-- [Security Testing Guide](docs/SECURITY.md)
-- [API Documentation](docs/API_DOCUMENTATION.md)
-- [Architecture Overview](docs/ARCHITECTURE.md)
-- [Deployment Guide](docs/DEPLOYMENT.md)
-
-### External Resources
+### 🔗 External Resources
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
 - [NIST Cybersecurity Framework](https://www.nist.gov/cyberframework)
 - [DevSecOps Best Practices](https://www.devsecops.org/)
 - [Banking Security Regulations](https://www.ffiec.gov/cyberresources.htm)
-
-## 🤝 Contributing
-
-We welcome contributions to improve our security testing capabilities:
-
-1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/new-security-test`)
-3. **Add** your security tests or improvements
-4. **Commit** your changes (`git commit -am 'Add new security test'`)
-5. **Push** to the branch (`git push origin feature/new-security-test`)
-6. **Create** a Pull Request
-
-### Contribution Guidelines
-
-- ✅ Add intentional vulnerabilities with clear documentation
-- ✅ Include corresponding test cases
-- ✅ Update security scan expectations
-- ✅ Follow existing code style and patterns
-- ✅ Include appropriate security warnings
 
 ## ⚖️ License
 
@@ -632,12 +628,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **IMPORTANT**: This repository contains intentional security vulnerabilities for testing purposes only. These vulnerabilities include:
 
-- Hardcoded secrets and credentials
-- SQL injection vulnerabilities  
-- Cross-site scripting (XSS) issues
-- Path traversal vulnerabilities
-- Weak cryptographic implementations
-- Command injection opportunities
+- ❌ Hardcoded secrets and credentials
+- ❌ SQL injection vulnerabilities  
+- ❌ Cross-site scripting (XSS) issues
+- ❌ Path traversal vulnerabilities
+- ❌ Weak cryptographic implementations
+- ❌ Command injection opportunities
+- ❌ Banking data exposure (for compliance testing)
+- ❌ Access control bypasses
 
 **DO NOT**:
 - Deploy this code to production environments
@@ -646,21 +644,33 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Use the hardcoded credentials for actual systems
 
 **USE ONLY** for:
-- Security tool testing and validation
-- DevSecOps pipeline development
-- Security training and education
-- Compliance testing in isolated environments
+- ✅ Security tool testing and validation
+- ✅ DevSecOps pipeline development
+- ✅ Security training and education
+- ✅ Compliance testing in isolated environments
 
 ## 📞 Support
 
 For questions, issues, or support:
 
-- **Security Issues**: security@cambridgesavings.com
-- **DevOps Support**: mfrommelt@csb.com  
-- **General Questions**: Create a GitHub issue
+- **🔒 Security Issues**: security@cambridgesavings.com
+- **🛠️ DevOps Support**: devops@cambridgesavings.com  
+- **❓ General Questions**: Create a GitHub issue
+- **💬 Real-time Help**: #devops-support Slack channel
 
 ---
 
-**Happy Security Testing! 🔒🚀**
+**🎉 Happy Security Testing! 🔒🚀**
 
 *Built with ❤️ by the CSB DevSecOps Team*
+
+### 🚀 Quick Start Summary
+
+1. **🌟 Recommended**: Open in [GitHub Codespaces](https://codespaces.new/csb/devsecops-test)
+2. **⏳ Wait** 3-5 minutes for environment setup
+3. **🚀 Run**: `./start-with-dependencies.sh`
+4. **🔍 Scan**: `./scripts/security/run-security-scans.sh`
+5. **📊 View**: Security dashboard at port 9000
+6. **🎯 Expect**: 150+ security findings (intentional)
+
+**Ready to test your security tools? Let's go! 🚀**
