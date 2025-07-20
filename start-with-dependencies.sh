@@ -1,5 +1,5 @@
 #!/bin/bash
-# Complete CSB DevSecOps Environment - Single Scalable Script
+# Complete CSB DevSecOps Environment - Enhanced for Fresh Codespaces
 # Handles Docker permissions, setup, service startup, security scanning, and dashboard
 
 set -e
@@ -110,7 +110,70 @@ fix_docker_permissions() {
     fi
 }
 
-# Function to wait for service
+# Enhanced wait for PostgreSQL with proper health checks
+wait_for_postgres() {
+    local max_attempts=60
+    local attempt=1
+    
+    log "⏳ Waiting for PostgreSQL to be fully ready..."
+    
+    while [ $attempt -le $max_attempts ]; do
+        # Check if PostgreSQL accepts connections and can execute queries
+        if docker-compose exec -T postgres pg_isready -U postgres >/dev/null 2>&1 && \
+           docker-compose exec -T postgres psql -U postgres -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+            log "✅ PostgreSQL is ready and accepting queries!"
+            
+            # Test database creation
+            log "🔍 Verifying database setup..."
+            local db_count=$(docker-compose exec -T postgres psql -U postgres -t -c "SELECT count(*) FROM pg_database WHERE datname IN ('csbdb', 'flaskdb', 'springdb', 'dotnetdb', 'nodedb');" | tr -d ' ')
+            if [ "$db_count" -ge 5 ]; then
+                log "✅ All application databases are ready"
+                return 0
+            else
+                log "⚠️ Only $db_count/5 databases found, continuing anyway..."
+                return 0
+            fi
+        fi
+        
+        printf "   Attempt %d/%d - PostgreSQL not ready yet...\r" $attempt $max_attempts
+        sleep 3
+        ((attempt++))
+    done
+    
+    echo ""
+    log "❌ PostgreSQL failed to become ready after $((max_attempts * 3)) seconds"
+    log "📋 Recent PostgreSQL logs:"
+    docker-compose logs --tail=10 postgres
+    return 1
+}
+
+# Enhanced wait for MySQL with proper health checks
+wait_for_mysql() {
+    local max_attempts=60
+    local attempt=1
+    
+    log "⏳ Waiting for MySQL to be fully ready..."
+    
+    while [ $attempt -le $max_attempts ]; do
+        # Check if MySQL accepts connections
+        if docker-compose exec -T mysql mysqladmin ping -h localhost -u root -prootpassword >/dev/null 2>&1; then
+            log "✅ MySQL is ready!"
+            return 0
+        fi
+        
+        printf "   Attempt %d/%d - MySQL not ready yet...\r" $attempt $max_attempts
+        sleep 3
+        ((attempt++))
+    done
+    
+    echo ""
+    log "❌ MySQL failed to become ready after $((max_attempts * 3)) seconds"
+    log "📋 Recent MySQL logs:"
+    docker-compose logs --tail=10 mysql
+    return 1
+}
+
+# Enhanced wait for application services
 wait_for_service() {
     local service=$1
     local port=$2
@@ -120,16 +183,41 @@ wait_for_service() {
     log "⏳ Waiting for $service to be ready on port $port..."
     
     while [ $attempt -le $max_attempts ]; do
-        if nc -z localhost $port >/dev/null 2>&1; then
-            log "✅ $service is ready!"
-            return 0
+        if timeout 5 bash -c "echo > /dev/tcp/127.0.0.1/$port" 2>/dev/null; then
+            # For API services, also test HTTP response
+            if [[ $service == *"API"* ]] || [[ $service == *"App"* ]]; then
+                if command_exists curl; then
+                    case $service in
+                        "Spring Boot API")
+                            if curl -f -s "http://localhost:$port/api/health" >/dev/null 2>&1; then
+                                log "✅ $service is ready and responding!"
+                                return 0
+                            fi
+                            ;;
+                        *)
+                            if curl -f -s "http://localhost:$port/" >/dev/null 2>&1; then
+                                log "✅ $service is ready and responding!"
+                                return 0
+                            fi
+                            ;;
+                    esac
+                else
+                    log "✅ $service is ready!"
+                    return 0
+                fi
+            else
+                log "✅ $service is ready!"
+                return 0
+            fi
         fi
-        echo "   Attempt $attempt/$max_attempts - $service not ready yet..."
+        
+        printf "   Attempt %d/%d - $service not ready yet...\r" $attempt $max_attempts
         sleep 2
         ((attempt++))
     done
     
-    log "❌ $service failed to become ready after $((max_attempts * 2)) seconds"
+    echo ""
+    log "⚠️ $service did not become ready after $((max_attempts * 2)) seconds"
     return 1
 }
 
@@ -173,7 +261,7 @@ setup_environment() {
     mkdir -p scripts/security
     mkdir -p databases/{postgresql,mysql,oracle}
     
-    # Create PostgreSQL initialization script
+    # Create PostgreSQL initialization script with fixed syntax
     if [ ! -f databases/postgresql/init-multiple-databases.sh ]; then
         mkdir -p databases/postgresql
         cat > databases/postgresql/init-multiple-databases.sh << 'PGEOF'
@@ -201,11 +289,11 @@ PGEOF
         chmod +x databases/postgresql/init-multiple-databases.sh
     fi
     
-    # Create seed data script
-    if [ ! -f databases/postgresql/seed-data.sql ]; then
-        cat > databases/postgresql/seed-data.sql << 'SQLEOF'
--- Seed data for security testing
+    # Create corrected seed data script with proper SQL syntax
+    cat > databases/postgresql/seed-data.sql << 'SQLEOF'
+-- Fixed seed data for security testing
 \c csbdb;
+
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(50),
@@ -217,7 +305,31 @@ CREATE TABLE IF NOT EXISTS users (
 INSERT INTO users (username, password, email, name) VALUES 
 ('admin', 'admin123', 'admin@csb.com', 'Administrator'),
 ('testuser', 'password', 'test@csb.com', 'Test User'),
-('john.doe', 'secret123', 'john@csb.com', 'John Doe');
+('john.doe', 'secret123', 'john@csb.com', 'John Doe'),
+('banking_user', 'bank123', 'banking@csb.com', 'Banking User');
+
+CREATE TABLE IF NOT EXISTS accounts (
+    account_id SERIAL PRIMARY KEY,
+    customer_id INTEGER,
+    account_number VARCHAR(20),
+    routing_number VARCHAR(9),
+    balance DECIMAL(15,2),
+    account_type VARCHAR(20)
+);
+
+INSERT INTO accounts (customer_id, account_number, routing_number, balance, account_type) VALUES
+(1, '1234567890123456', '021000021', 1500.50, 'checking'),
+(2, '6543210987654321', '021000021', 25000.00, 'savings'),
+(3, '1111222233334444', '021000021', 750.25, 'checking');
+
+-- Fixed function definition with proper dollar-quoting
+CREATE OR REPLACE FUNCTION get_user_by_id(user_input TEXT)
+RETURNS TABLE(id INTEGER, username VARCHAR, email VARCHAR) AS $$
+BEGIN
+    -- INTENTIONAL SQL INJECTION VULNERABILITY FOR TESTING
+    RETURN QUERY EXECUTE 'SELECT users.id, users.username, users.email FROM users WHERE users.id = ' || user_input;
+END;
+$$ LANGUAGE plpgsql;
 
 \c flaskdb;
 CREATE TABLE IF NOT EXISTS users (
@@ -230,7 +342,8 @@ CREATE TABLE IF NOT EXISTS users (
 
 INSERT INTO users (username, password, email, name) VALUES 
 ('flask_admin', 'flask123', 'flask@csb.com', 'Flask Admin'),
-('flask_user', 'flask_password', 'flaskuser@csb.com', 'Flask User');
+('flask_user', 'flask_password', 'flaskuser@csb.com', 'Flask User'),
+('flask_test', 'weak_pwd', 'test@flask.com', 'Flask Test User');
 
 \c springdb;
 CREATE TABLE IF NOT EXISTS users (
@@ -243,7 +356,8 @@ CREATE TABLE IF NOT EXISTS users (
 
 INSERT INTO users (username, password, email, name) VALUES 
 ('spring_admin', 'spring123', 'spring@csb.com', 'Spring Admin'),
-('spring_user', 'spring_password', 'springuser@csb.com', 'Spring User');
+('spring_user', 'spring_password', 'springuser@csb.com', 'Spring User'),
+('api_user', 'api123', 'api@spring.com', 'API Test User');
 
 \c dotnetdb;
 CREATE TABLE IF NOT EXISTS users (
@@ -256,7 +370,8 @@ CREATE TABLE IF NOT EXISTS users (
 
 INSERT INTO users (username, password, email, name) VALUES 
 ('dotnet_admin', 'dotnet123', 'dotnet@csb.com', '.NET Admin'),
-('dotnet_user', 'dotnet_password', 'dotnetuser@csb.com', '.NET User');
+('dotnet_user', 'dotnet_password', 'dotnetuser@csb.com', '.NET User'),
+('core_user', 'core123', 'core@dotnet.com', 'Core API User');
 
 \c nodedb;
 CREATE TABLE IF NOT EXISTS users (
@@ -269,9 +384,22 @@ CREATE TABLE IF NOT EXISTS users (
 
 INSERT INTO users (username, password, email, name) VALUES 
 ('node_admin', 'node123', 'node@csb.com', 'Node Admin'),
-('node_user', 'node_password', 'nodeuser@csb.com', 'Node User');
+('node_user', 'node_password', 'nodeuser@csb.com', 'Node User'),
+('express_user', 'express123', 'express@node.com', 'Express API User');
+
+-- Create a shared function for testing across all databases
+\c csbdb;
+CREATE OR REPLACE FUNCTION unsafe_login(username_input TEXT, password_input TEXT)
+RETURNS BOOLEAN AS $$
+DECLARE
+    result BOOLEAN;
+BEGIN
+    -- INTENTIONAL SQL INJECTION VULNERABILITY FOR TESTING
+    EXECUTE 'SELECT EXISTS(SELECT 1 FROM users WHERE username = ''' || username_input || ''' AND password = ''' || password_input || ''')' INTO result;
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql;
 SQLEOF
-    fi
     
     # Create enhanced security dashboard
     log "🎯 Creating enhanced security dashboard..."
@@ -632,7 +760,7 @@ HTMLEOF
     log "✅ Environment setup complete"
 }
 
-# Function to start services in proper order
+# Function to start services in proper order with enhanced health checks
 start_services() {
     if [ "$SCAN_ONLY" = true ]; then
         log "⏭️ Skipping service startup (scan-only mode)"
@@ -645,51 +773,76 @@ start_services() {
     docker network create csb-test-network 2>/dev/null || true
     
     echo ""
-    log "📊 Step 1: Starting databases..."
+    log "📊 Step 1: Starting databases with enhanced health checks..."
     docker-compose up -d postgres mysql
-    log "Waiting for databases to initialize..."
-    sleep 30
+    log "Waiting for databases to fully initialize..."
     
-    # Wait for databases to be ready
-    wait_for_service "PostgreSQL" 5432
-    wait_for_service "MySQL" 3306
+    # Wait for databases to be ready with enhanced health checks
+    if wait_for_postgres && wait_for_mysql; then
+        log "✅ All databases are ready and initialized!"
+    else
+        log "❌ Database startup failed - checking for issues..."
+        echo ""
+        log "📋 Recent PostgreSQL logs:"
+        docker-compose logs --tail=15 postgres
+        echo ""
+        log "📋 Recent MySQL logs:"
+        docker-compose logs --tail=10 mysql
+        return 1
+    fi
     
     echo ""
     log "⚙️ Step 2: Starting backend applications..."
     docker-compose up -d spring-boot-api django-app flask-api node-express dotnet-api php-drupal
     log "Waiting for backend services..."
-    sleep 20
+    sleep 30
     
     echo ""
     log "🖥️ Step 3: Starting frontend applications..."
     docker-compose up -d react-app angular-app
-    sleep 10
+    sleep 15
     
     echo ""
     log "🛠️ Step 4: Starting support services..."
     docker-compose up -d adminer
     sleep 5
     
-    # Verify services are ready
+    # Quick service verification (non-blocking)
     echo ""
-    log "🔍 Verifying service readiness..."
+    log "🔍 Quick service verification (non-blocking)..."
     
-    local services=("PostgreSQL:5432" "MySQL:3306" "Spring Boot:8080" "Django:8000" "Flask:5000" "React:3000")
+    local services=(
+        "Spring Boot API:8080"
+        "Django API:8000"
+        "Flask API:5000"
+        "React App:3000"
+        "Angular App:4200"
+        "Node.js API:3001"
+    )
+    
     local ready_count=0
+    local total_services=${#services[@]}
     
     for service_port in "${services[@]}"; do
         local service=$(echo $service_port | cut -d: -f1)
         local port=$(echo $service_port | cut -d: -f2)
         
-        if nc -z localhost $port 2>/dev/null; then
-            log "✅ $service is ready"
+        # Quick 5-second check only
+        if timeout 5 bash -c "echo > /dev/tcp/127.0.0.1/$port" 2>/dev/null; then
+            log "✅ $service is responding on port $port"
             ((ready_count++))
         else
-            log "⚠️ $service is not responding"
+            log "⚠️ $service not yet ready on port $port (may still be starting)"
         fi
     done
     
-    log "📊 Services ready: $ready_count/${#services[@]}"
+    log "📊 Services responding: $ready_count/$total_services"
+    log "💡 Some services may still be starting in the background"
+    
+    # Show container status
+    echo ""
+    log "📋 Container Status:"
+    docker-compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" | head -10
 }
 
 # Function to run comprehensive security scans
@@ -875,7 +1028,7 @@ start_dashboard() {
     
     # Wait for dashboard to be ready
     sleep 5
-    if nc -z localhost 9000 2>/dev/null; then
+    if timeout 10 bash -c "echo > /dev/tcp/127.0.0.1/9000" 2>/dev/null; then
         log "✅ Security dashboard ready at http://localhost:9000"
         
         # Display Codespaces URL if available
@@ -952,6 +1105,12 @@ display_summary() {
     
     echo ""
     echo "🎉 Environment ready for security tool evaluation!"
+    echo ""
+    echo "🛠️ If services are still starting:"
+    echo "  Check status:        docker-compose ps"
+    echo "  View Spring Boot:    docker-compose logs spring-boot-api"
+    echo "  Wait for services:   sleep 60 && curl http://localhost:8080/api/health"
+    echo "  Restart if needed:   docker-compose restart spring-boot-api"
 }
 
 # Main execution function
