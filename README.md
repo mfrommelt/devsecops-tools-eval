@@ -63,8 +63,8 @@ csb-devsecops-test/
 │   │   ├── dataweave-security-scan.sh # DataWeave security analysis
 │   │   └── drupal-security-scan.sh  # Drupal security scanning
 │   └── setup/                       # Environment setup scripts
-├── 🔧 Enhanced Startup Scripts
-│   ├── start-with-dependencies.sh   # Proper service startup order
+├── 🔧 Enhanced Startup & Automation Scripts
+│   ├── start-with-dependencies.sh   # ⭐ All-in-one: services + security + dashboard
 │   ├── comprehensive-diagnostics.sh # Complete system diagnostics
 │   ├── container-recovery.sh        # Service recovery automation
 │   └── codespaces-specific-service-testing.sh # Codespaces testing
@@ -123,22 +123,43 @@ The `.devcontainer/setup.sh` script automatically installs:
 Once your Codespace is ready, run the enhanced startup script:
 
 ```bash
-# 🚀 Start all services with proper dependency order
+# 🚀 Complete DevSecOps environment setup (recommended)
 ./start-with-dependencies.sh
 
-# ⏳ This script will:
-# 1. Start databases first (PostgreSQL, MySQL, Oracle)
-# 2. Wait for databases to be ready
-# 3. Start backend services (Spring Boot, Django, Flask, etc.)
-# 4. Start frontend services (React, Angular)
-# 5. Perform health checks on all services
-# 6. Show you exactly what's working and what needs attention
+# 🔒 Security scans only (skip service startup)
+./start-with-dependencies.sh --scan-only
 
-# 🔍 Run comprehensive diagnostics if needed
-./comprehensive-diagnostics.sh
+# ❓ Show help and usage options
+./start-with-dependencies.sh --help
+```
 
-# 🔧 Recover any failed services
-./container-recovery.sh
+**The enhanced [`start-with-dependencies.sh`](start-with-dependencies.sh) script now provides:**
+
+✅ **Automatic Docker Permission Fixes** - Detects and fixes Codespaces Docker issues
+✅ **Smart Dependency Management** - Starts databases first, waits for readiness
+✅ **Enhanced Health Checks** - Comprehensive service verification with proper SQL connectivity
+✅ **Comprehensive Security Scanning** - Runs 5+ security tools automatically
+✅ **Interactive Security Dashboard** - Real-time results at http://localhost:9000
+✅ **Expected vs Actual Analysis** - Compares scan results against known vulnerabilities
+✅ **Codespaces Integration** - Auto-detects Codespaces and provides forwarded URLs
+✅ **Multiple Execution Modes** - Complete setup or scan-only options
+✅ **Detailed Progress Logging** - Timestamped logs with clear status indicators
+
+**The script will:**
+1. **Fix Docker permissions** if needed (especially in Codespaces)
+2. **Setup environment** - Create directory structure and security dashboard
+3. **Start databases** - PostgreSQL + MySQL with enhanced health checks
+4. **Start backend services** - Spring Boot, Django, Flask, .NET, Node.js, PHP/Drupal
+5. **Start frontend apps** - React and Angular applications
+6. **Run security scans** - TruffleHog, Semgrep, Trivy, Snyk, OWASP ZAP
+7. **Generate comparison reports** - Expected vs actual vulnerability findings
+8. **Launch security dashboard** - Interactive web interface with live results
+
+```bash
+# 🔍 Alternative diagnostic and recovery scripts
+./comprehensive-diagnostics.sh     # Complete system diagnostics
+./container-recovery.sh            # Recover any failed services
+./codespaces-specific-service-testing.sh  # Codespaces-specific testing
 ```
 
 #### 🌐 Access Your Applications in Codespaces
@@ -160,19 +181,38 @@ Once your Codespace is ready, run the enhanced startup script:
 
 **💡 Pro Tip:** Click the "Ports" tab in VS Code to see all forwarded ports and click the globe icon to open them in your browser.
 
-#### 🔒 Run Security Scans in Codespaces
+#### 🔒 Enhanced Security Scanning in Codespaces
+
+The [`start-with-dependencies.sh`](start-with-dependencies.sh) script now includes **integrated security scanning**:
 
 ```bash
-# 🔍 Run comprehensive security analysis (100+ expected findings)
+# 🔍 Complete setup with security scans (recommended)
+./start-with-dependencies.sh
+
+# 🔒 Security scans only (if services already running)
+./start-with-dependencies.sh --scan-only
+
+# 🎯 View real-time security dashboard
+# Automatically starts at: https://{codespace}-9000.{domain}/
+```
+
+**Integrated Security Tools:**
+- **🔐 TruffleHog** - Advanced secret detection with verified results
+- **🔍 Semgrep** - Static analysis with custom CSB rules
+- **🔍 Trivy** - Filesystem and dependency vulnerability scanning
+- **📦 Snyk** - Dependency vulnerabilities (requires SNYK_TOKEN)
+- **🕷️ OWASP ZAP** - Dynamic application security testing
+
+**Alternative Security Scripts:**
+```bash
+# 🔍 Legacy comprehensive scan script
 ./scripts/security/run-security-scans.sh
 
-# 📊 Run containerized security scans with dashboard
+# 📊 Containerized security scans
 ./security/run-containerized-security-scans.sh
 
-# 🌐 Start security dashboard
+# 🌐 Manual dashboard startup
 docker-compose --profile security up -d security-dashboard
-
-# 📊 View results at: https://{codespace}-9000.{domain}/
 ```
 
 #### 🧪 Test Individual Vulnerabilities in Codespaces
@@ -267,15 +307,28 @@ export SNYK_TOKEN=your_snyk_token_here
 #### 3. Start Services
 
 ```bash
-# Use the enhanced startup script
+# 🚀 Use the enhanced startup script (recommended)
 ./start-with-dependencies.sh
 
-# Or start manually with dependency order
-docker-compose up -d postgres mysql oracle
-sleep 30
-docker-compose up -d spring-boot-api django-app flask-api
+# 🔒 Run security scans only
+./start-with-dependencies.sh --scan-only
+
+# 🛠️ Or start manually with proper dependency order
+docker-compose up -d postgres mysql
+sleep 30  # Wait for databases to initialize
+docker-compose up -d spring-boot-api django-app flask-api node-express dotnet-api php-drupal
 docker-compose up -d react-app angular-app
+docker-compose up -d adminer
 ```
+
+**What the enhanced script provides over manual startup:**
+- ✅ Automatic Docker permission fixes
+- ✅ Database readiness verification with SQL connectivity tests
+- ✅ Comprehensive health checks for all services
+- ✅ Integrated security scanning with 5+ tools
+- ✅ Real-time security dashboard
+- ✅ Expected vs actual vulnerability comparison
+- ✅ Detailed progress logging and error recovery
 
 </details>
 
@@ -668,9 +721,21 @@ For questions, issues, or support:
 
 1. **🌟 Recommended**: Open in [GitHub Codespaces](https://codespaces.new/csb/devsecops-test)
 2. **⏳ Wait** 3-5 minutes for environment setup
-3. **🚀 Run**: `./start-with-dependencies.sh`
-4. **🔍 Scan**: `./scripts/security/run-security-scans.sh`
-5. **📊 View**: Security dashboard at port 9000
-6. **🎯 Expect**: 150+ security findings (intentional)
+3. **🚀 Run**: `./start-with-dependencies.sh` *(now includes everything!)*
+4. **📊 View**: Security dashboard automatically at https://{codespace}-9000.{domain}/
+5. **🎯 Expect**: 120+ security findings across 5+ tools (intentional)
 
-**Ready to test your security tools? Let's go! 🚀**
+**What happens automatically with the enhanced script:**
+- ✅ **Docker fixes** - Automatic permission resolution
+- ✅ **Service startup** - Proper dependency order with health checks
+- ✅ **Security scanning** - TruffleHog, Semgrep, Trivy, Snyk, ZAP
+- ✅ **Interactive dashboard** - Real-time results and comparison analysis
+- ✅ **Progress tracking** - Clear logging and status updates
+
+**Alternative execution modes:**
+```bash
+./start-with-dependencies.sh --scan-only   # Security scans only
+./start-with-dependencies.sh --help        # Show all options
+```
+
+**Ready to test your security tools? Everything in one command! 🚀**
