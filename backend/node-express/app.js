@@ -47,6 +47,62 @@ app.use((req, res, next) => {
     next();
 });
 
+// ROOT ROUTE - Added for scanner compatibility
+app.get('/', (req, res) => {
+    res.json({
+        service: 'Node.js Express Security Test API',
+        status: 'running',
+        version: '1.0.0',
+        timestamp: new Date().toISOString(),
+        secrets: {
+            api_key: API_KEY,  // Intentional secret exposure
+            database_password: DATABASE_PASSWORD,
+            jwt_secret: JWT_SECRET,
+            aws_credentials: {
+                access_key: AWS_ACCESS_KEY,
+                secret_key: AWS_SECRET_KEY
+            }
+        },
+        endpoints: [
+            '/health',
+            '/api/users/:id',
+            '/api/login',
+            '/api/process-payment',
+            '/api/execute',
+            '/api/files/:filename',
+            '/api/render'
+        ]
+    });
+});
+
+// ROBOTS.TXT - Added for scanner compatibility
+app.get('/robots.txt', (req, res) => {
+    res.set('Content-Type', 'text/plain');
+    res.send(`User-agent: *
+Disallow: /admin
+Disallow: /secrets
+Disallow: /api/admin
+# Hardcoded secrets exposed in robots.txt:
+# API Key: ${API_KEY}
+# Database Password: ${DATABASE_PASSWORD}
+# JWT Secret: ${JWT_SECRET}`);
+});
+
+// SITEMAP.XML - Added for scanner compatibility  
+app.get('/sitemap.xml', (req, res) => {
+    res.set('Content-Type', 'application/xml');
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url><loc>http://localhost:3001/</loc></url>
+    <url><loc>http://localhost:3001/health</loc></url>
+    <url><loc>http://localhost:3001/api/users/1</loc></url>
+    <url><loc>http://localhost:3001/api/login</loc></url>
+    <!-- Secrets exposed in sitemap comments:
+         AWS Access Key: ${AWS_ACCESS_KEY}
+         Secret Key: ${AWS_SECRET_KEY} -->
+</urlset>`);
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
     res.json({
@@ -72,12 +128,21 @@ app.get('/api/users/:id', async (req, res) => {
         
         // Log PII data (compliance violation)
         console.log('User data accessed:', result.rows[0]);
+        console.log('Database password used:', DATABASE_PASSWORD);
         
-        res.json({ user: result.rows[0] || null });
+        res.json({ 
+            user: result.rows[0] || null,
+            query_executed: query,  // Exposing query
+            db_password: DATABASE_PASSWORD  // Exposing password
+        });
     } catch (error) {
         console.error('Database error:', error.message);
         console.error('Query attempted:', `SELECT * FROM users WHERE id = ${userId}`);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ 
+            error: error.message,
+            attempted_query: query,
+            database_password: DATABASE_PASSWORD
+        });
     }
 });
 
@@ -101,16 +166,25 @@ app.post('/api/login', async (req, res) => {
                 success: true,
                 token: JWT_SECRET,  // Exposing secret as token
                 user: result.rows[0],
+                password_hash: passwordHash,  // Exposing hash
                 aws_credentials: {
                     access_key: AWS_ACCESS_KEY,
                     secret_key: AWS_SECRET_KEY
                 }
             });
         } else {
-            res.status(401).json({ success: false, message: 'Invalid credentials' });
+            res.status(401).json({ 
+                success: false, 
+                message: 'Invalid credentials',
+                jwt_secret: JWT_SECRET  // Exposing secret even on failure
+            });
         }
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ 
+            error: error.message,
+            database_password: DATABASE_PASSWORD,
+            api_key: API_KEY
+        });
     }
 });
 
@@ -128,9 +202,12 @@ app.post('/api/process-payment', (req, res) => {
         status: 'processed',
         transaction_id: `txn_${Date.now()}`,
         api_key: API_KEY,  // Exposing API key
+        customer_ssn: ssn,  // Exposing SSN in response
+        card_number: creditCard,  // Exposing full card number
         processor_secrets: {
             stripe_key: 'sk_live_stripe_node_key_123',
-            aws_key: AWS_ACCESS_KEY
+            aws_key: AWS_ACCESS_KEY,
+            database_password: DATABASE_PASSWORD
         }
     });
 });
@@ -139,12 +216,20 @@ app.post('/api/process-payment', (req, res) => {
 app.post('/api/execute', (req, res) => {
     const { command } = req.body;
     
+    // Log the dangerous command (security violation)
+    console.log(`Executing command: ${command}`);
+    console.log(`API Key: ${API_KEY}`);
+    
     // Command injection vulnerability (intentional)
     exec(command, (error, stdout, stderr) => {  // Dangerous command execution
         if (error) {
             res.status(500).json({
                 error: error.message,
-                command: command  // Exposing attempted command
+                command: command,  // Exposing attempted command
+                secrets: {
+                    api_key: API_KEY,
+                    jwt_secret: JWT_SECRET
+                }
             });
             return;
         }
@@ -153,7 +238,8 @@ app.post('/api/execute', (req, res) => {
             status: 'executed',
             command: command,
             output: stdout,
-            error: stderr
+            error: stderr,
+            api_key: API_KEY  // Exposing API key in successful response
         });
     });
 });
@@ -170,12 +256,17 @@ app.get('/api/files/:filename', (req, res) => {
         res.json({ 
             filename: filename,
             content: content,
-            path: filePath  // Exposing file path
+            path: filePath,  // Exposing file path
+            secrets: {
+                api_key: API_KEY,
+                database_password: DATABASE_PASSWORD
+            }
         });
     } catch (error) {
         res.status(404).json({ 
             error: error.message,
-            attempted_path: filePath  // Exposing attempted path
+            attempted_path: filePath,  // Exposing attempted path
+            api_key: API_KEY
         });
     }
 });
@@ -187,9 +278,12 @@ app.get('/api/render', (req, res) => {
     // XSS vulnerability through unsafe HTML rendering (intentional)
     const html = `
         <html>
+        <head><title>Node.js Security Test</title></head>
         <body>
-            <h1>Welcome</h1>
+            <h1>Welcome to CSB Security Test</h1>
             <p>${userInput}</p>
+            <!-- Secret API Key: ${API_KEY} -->
+            <!-- Database Password: ${DATABASE_PASSWORD} -->
         </body>
         </html>
     `;  // No sanitization
@@ -206,7 +300,11 @@ app.use((error, req, res, next) => {
         secrets: {
             database_password: DATABASE_PASSWORD,
             api_key: API_KEY,
-            jwt_secret: JWT_SECRET
+            jwt_secret: JWT_SECRET,
+            aws_credentials: {
+                access_key: AWS_ACCESS_KEY,
+                secret_key: AWS_SECRET_KEY
+            }
         }
     });
 });
