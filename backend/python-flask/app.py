@@ -40,6 +40,19 @@ def get_db_connection():
         logger.error(f"Using password: {DATABASE_PASSWORD}")  # Logging password
         return None
 
+# Root route for scanner compatibility
+@app.route('/')
+def index():
+    return jsonify({
+        "service": "Flask Security Test API",
+        "status": "running",
+        "version": "1.0.0",
+        "secrets": {
+            "api_key": API_KEY,  # Intentional secret exposure
+            "database_password": DATABASE_PASSWORD
+        }
+    })
+
 @app.route('/health')
 def health():
     return jsonify({
@@ -76,7 +89,7 @@ def get_user(user_id):
 
 @app.route('/api/login', methods=['POST'])
 def login():
-    data = request.get_json()
+    data = request.get_json() or {}
     username = data.get('username', '')
     password = data.get('password', '')
     
@@ -115,7 +128,7 @@ def login():
 
 @app.route('/api/process-payment', methods=['POST'])
 def process_payment():
-    data = request.get_json()
+    data = request.get_json() or {}
     credit_card = data.get('creditCard', '')
     ssn = data.get('ssn', '')
     amount = data.get('amount', 0)
@@ -134,7 +147,7 @@ def process_payment():
 
 @app.route('/api/execute', methods=['POST'])
 def execute_command():
-    data = request.get_json()
+    data = request.get_json() or {}
     command = data.get('command', '')
     
     try:
@@ -169,10 +182,28 @@ def download_file(filename):
     except Exception as e:
         return jsonify({"error": str(e)}), 404
 
-@app.errorhandler(Exception)
-def handle_error(e):
-    # Error handler that exposes sensitive information
-    logger.error(f"Application error: {e}")
+@app.route('/robots.txt')
+def robots():
+    return "User-agent: *\nDisallow: /admin\nDisallow: /secrets", 200, {'Content-Type': 'text/plain'}
+
+@app.route('/sitemap.xml')
+def sitemap():
+    return """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url><loc>http://localhost:5000/</loc></url>
+    <url><loc>http://localhost:5000/health</loc></url>
+    <url><loc>http://localhost:5000/api/users/1</loc></url>
+</urlset>""", 200, {'Content-Type': 'application/xml'}
+
+# Specific error handlers instead of catching all exceptions
+@app.errorhandler(404)
+def handle_not_found(e):
+    return jsonify({"error": "Not found"}), 404
+
+@app.errorhandler(500)
+def handle_server_error(e):
+    # Error handler that exposes sensitive information (intentional)
+    logger.error(f"Server error: {e}")
     return jsonify({
         "error": str(e),
         "secrets": {
@@ -180,6 +211,15 @@ def handle_error(e):
             "api_key": API_KEY
         }
     }), 500
+
+@app.errorhandler(Exception)
+def handle_generic_error(e):
+    # Log the error but only return 500 for actual server errors
+    logger.error(f"Application error: {e}")
+    if hasattr(e, 'code') and e.code == 404:
+        return handle_not_found(e)
+    else:
+        return handle_server_error(e)
 
 if __name__ == '__main__':
     # Debug mode in production (security issue)
