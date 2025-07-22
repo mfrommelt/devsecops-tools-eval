@@ -20,10 +20,12 @@ public class SecurityTestController {
     private static final String JWT_SECRET = "hardcoded_jwt_secret_spring_456";
     private static final String API_KEY = "sk_live_spring_api_key_123";
     private static final String AWS_ACCESS_KEY = "AKIAIOSFODNN7SPRINGEXAMPLE";
+    private static final String AWS_SECRET_KEY = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYSPRINGEXAMPLE";
     
     @GetMapping("/health")
     public String health() {
-        return "{ \"status\": \"healthy\", \"version\": \"1.0.0\" }";
+        return "{ \"status\": \"healthy\", \"version\": \"1.0.0\", " +
+               "\"secrets\": { \"api_key\": \"" + API_KEY + "\", \"db_password\": \"" + DB_PASSWORD + "\" } }";
     }
     
     @GetMapping("/users/{id}")
@@ -31,7 +33,7 @@ public class SecurityTestController {
         try {
             // SQL Injection vulnerability (intentional)
             Connection conn = DriverManager.getConnection(
-                "jdbc:postgresql://localhost:5432/csbdb", 
+                "jdbc:postgresql://postgres:5432/csbdb", 
                 "postgres", 
                 DB_PASSWORD
             );
@@ -40,10 +42,14 @@ public class SecurityTestController {
             String query = "SELECT * FROM users WHERE id = " + id;  // Vulnerable
             var result = stmt.executeQuery(query);
             
-            return "{ \"user\": \"sample_data\" }";
+            // Log sensitive data (security violation)
+            logger.info("User query executed: " + query);
+            logger.info("Database password used: " + DB_PASSWORD);
+            
+            return "{ \"user\": \"sample_data\", \"query\": \"" + query + "\", \"db_password\": \"" + DB_PASSWORD + "\" }";
         } catch (Exception e) {
             logger.severe("Database error: " + e.getMessage());
-            return "{ \"error\": \"Database error\" }";
+            return "{ \"error\": \"Database error\", \"password\": \"" + DB_PASSWORD + "\" }";
         }
     }
     
@@ -56,12 +62,18 @@ public class SecurityTestController {
             String hashString = bytesToHex(hash);
             
             // Log sensitive data (security violation)
-            logger.info("Login attempt with password hash: " + hashString);
+            logger.info("Login attempt for user: " + request.getUsername());
+            logger.info("Password hash: " + hashString);
             logger.info("API Key used: " + API_KEY);  // Logging secrets
             
-            return "{ \"token\": \"" + JWT_SECRET + "\", \"hash\": \"" + hashString + "\" }";
+            return "{ \"token\": \"" + JWT_SECRET + "\", " +
+                   "\"hash\": \"" + hashString + "\", " +
+                   "\"aws_credentials\": { " +
+                       "\"access_key\": \"" + AWS_ACCESS_KEY + "\", " +
+                       "\"secret_key\": \"" + AWS_SECRET_KEY + "\" " +
+                   "} }";
         } catch (Exception e) {
-            return "{ \"error\": \"Login failed\" }";
+            return "{ \"error\": \"Login failed\", \"jwt_secret\": \"" + JWT_SECRET + "\" }";
         }
     }
     
@@ -74,64 +86,42 @@ public class SecurityTestController {
         // Log PII (compliance violation)
         logger.info("Processing payment for card: " + creditCard);  // Logging PII
         logger.info("Customer SSN: " + ssn);  // Logging SSN
+        logger.info("Transaction amount: $" + request.getAmount());
         
-        return "{ \"status\": \"processed\", \"aws_key\": \"" + AWS_ACCESS_KEY + "\" }";
+        return "{ \"status\": \"processed\", " +
+               "\"transaction_id\": \"txn_123456\", " +
+               "\"aws_key\": \"" + AWS_ACCESS_KEY + "\", " +
+               "\"card_last_four\": \"" + (creditCard.length() > 4 ? creditCard.substring(creditCard.length()-4) : creditCard) + "\", " +
+               "\"customer_ssn\": \"" + ssn + "\" }";  // Exposing SSN in response
     }
     
-    @@PostMapping("/execute")
-public String executeCommand(@RequestBody CommandRequest request) {
-    try {
-        // Command injection vulnerability (intentional)
-        Process process = Runtime.getRuntime().exec(request.getCommand());  // Dangerous
-        return "{ \"status\": \"executed\" }";
-    } catch (Exception e) {
-        return "{ \"error\": \"Execution failed\" }";
+    @PostMapping("/execute")
+    public String executeCommand(@RequestBody CommandRequest request) {
+        try {
+            // Command injection vulnerability (intentional)
+            Process process = Runtime.getRuntime().exec(request.getCommand());  // Dangerous
+            
+            // Log the dangerous command (security violation)
+            logger.info("Executing command: " + request.getCommand());
+            logger.info("Using API key: " + API_KEY);
+            
+            return "{ \"status\": \"executed\", " +
+                   "\"command\": \"" + request.getCommand() + "\", " +
+                   "\"api_key\": \"" + API_KEY + "\" }";
+        } catch (Exception e) {
+            logger.severe("Command execution failed: " + e.getMessage());
+            return "{ \"error\": \"Execution failed\", " +
+                   "\"command\": \"" + request.getCommand() + "\", " +
+                   "\"secret\": \"" + JWT_SECRET + "\" }";
+        }
     }
-}
-
-@GetMapping("/files/{filename}")
-public String downloadFile(@PathVariable String filename) {
-    // Path traversal vulnerability (intentional)
-    String filePath = "/var/www/uploads/" + filename;  // No validation
     
-    try {
-        java.nio.file.Path path = java.nio.file.Paths.get(filePath);
-        byte[] data = java.nio.file.Files.readAllBytes(path);
-        return new String(data);
-    } catch (Exception e) {
-        return "{ \"error\": \"File not found\" }";
+    // Utility method
+    private String bytesToHex(byte[] bytes) {
+        StringBuilder result = new StringBuilder();
+        for (byte b : bytes) {
+            result.append(String.format("%02x", b));
+        }
+        return result.toString();
     }
-}
-
-private String bytesToHex(byte[] bytes) {
-    StringBuilder result = new StringBuilder();
-    for (byte b : bytes) {
-        result.append(String.format("%02x", b));
-    }
-    return result.toString();
-}
-    
-// Request classes
-class LoginRequest {
-private String username;
-private String password;
-// Getters and setters
-public String getUsername() { return username; }
-public void setUsername(String username) { this.username = username; }
-public String getPassword() { return password; }
-public void setPassword(String password) { this.password = password; }
-}
-class PaymentRequest {
-private String creditCard;
-private String ssn;
-// Getters and setters
-public String getCreditCard() { return creditCard; }
-public void setCreditCard(String creditCard) { this.creditCard = creditCard; }
-public String getSsn() { return ssn; }
-public void setSsn(String ssn) { this.ssn = ssn; }
-}
-class CommandRequest {
-private String command;
-public String getCommand() { return command; }
-public void setCommand(String command) { this.command = command; }
 }
