@@ -1,22 +1,30 @@
 <!-- backend/csharp-etl/csb-etl.csproj -->
+<!-- Updated to fix System.Text.Json version conflict -->
+
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
+    <!-- Disable warnings as errors for intentional vulnerabilities in test environment -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsErrors />
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Data.SqlClient" Version="4.8.2" />
-    <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="3.21.1" />
+    <!-- Fix version conflict by explicitly referencing the higher version -->
+    <PackageReference Include="System.Text.Json" Version="6.0.0" />
+    
+    <!-- Keep intentional vulnerable packages for security testing -->
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
     <PackageReference Include="Npgsql" Version="6.0.3" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.0" />
+    <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="3.21.1" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.2" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="6.0.0" />
     
-    <!-- Intentionally vulnerable dependencies -->
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" /> <!-- Known vulnerabilities -->
-    <PackageReference Include="System.Text.Json" Version="5.0.0" /> <!-- Older version -->
+    <!-- Add other dependencies as needed -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
   </ItemGroup>
 
 </Project>
