@@ -1,0 +1,174 @@
+<!-- sonarqube/quality-profiles/csb-security-profile.xml -->
+<!-- Custom Quality Profile for CSB DevSecOps Test Environment -->
+<!-- This profile focuses on security-related rules and vulnerability detection -->
+
+<?xml version="1.0" encoding="UTF-8"?>
+<profile>
+  <name>CSB Security Profile</name>
+  <language>multi</language>
+  <rules>
+    <!-- Security Rules -->
+    
+    <!-- SQL Injection Prevention -->
+    <rule>
+      <repositoryKey>java</repositoryKey>
+      <key>S2077</key>
+      <priority>BLOCKER</priority>
+    </rule>
+    
+    <!-- Hardcoded Credentials -->
+    <rule>
+      <repositoryKey>java</repositoryKey>
+      <key>S2068</key>
+      <priority>BLOCKER</priority>
+    </rule>
+    
+    <!-- Weak Cryptography -->
+    <rule>
+      <repositoryKey>java</repositoryKey>
+      <key>S4790</key>
+      <priority>CRITICAL</priority>
+    </rule>
+    
+    <!-- Cross-Site Scripting (XSS) -->
+    <rule>
+      <repositoryKey>java</repositoryKey>
+      <key>S5131</key>
+      <priority>BLOCKER</priority>
+    </rule>
+    
+    <!-- Path Traversal -->
+    <rule>
+      <repositoryKey>java</repositoryKey>
+      <key>S2083</key>
+      <priority>BLOCKER</priority>
+    </rule>
+    
+    <!-- Insecure Random -->
+    <rule>
+      <repositoryKey>java</repositoryKey>
+      <key>S2245</key>
+      <priority>CRITICAL</priority>
+    </rule>
+    
+    <!-- JavaScript Security Rules -->
+    
+    <!-- Eval Usage -->
+    <rule>
+      <repositoryKey>javascript</repositoryKey>
+      <key>S1523</key>
+      <priority>BLOCKER</priority>
+    </rule>
+    
+    <!-- Hardcoded Secrets in JS -->
+    <rule>
+      <repositoryKey>javascript</repositoryKey>
+      <key>S2068</key>
+      <priority>BLOCKER</priority>
+    </rule>
+    
+    <!-- Insecure Random in JS -->
+    <rule>
+      <repositoryKey>javascript</repositoryKey>
+      <key>S2245</key>
+      <priority>CRITICAL</priority>
+    </rule>
+    
+    <!-- Python Security Rules -->
+    
+    <!-- SQL Injection in Python -->
+    <rule>
+      <repositoryKey>python</repositoryKey>
+      <key>S2077</key>
+      <priority>BLOCKER</priority>
+    </rule>
+    
+    <!-- Hardcoded Secrets in Python -->
+    <rule>
+      <repositoryKey>python</repositoryKey>
+      <key>S2068</key>
+      <priority>BLOCKER</priority>
+    </rule>
+    
+    <!-- Weak Hash in Python -->
+    <rule>
+      <repositoryKey>python</repositoryKey>
+      <key>S4790</key>
+      <priority>CRITICAL</priority>
+    </rule>
+    
+    <!-- C# Security Rules -->
+    
+    <!-- SQL Injection in C# -->
+    <rule>
+      <repositoryKey>csharpsquid</repositoryKey>
+      <key>S2077</key>
+      <priority>BLOCKER</priority>
+    </rule>
+    
+    <!-- Hardcoded Secrets in C# -->
+    <rule>
+      <repositoryKey>csharpsquid</repositoryKey>
+      <key>S2068</key>
+      <priority>BLOCKER</priority>
+    </rule>
+    
+    <!-- PHP Security Rules -->
+    
+    <!-- SQL Injection in PHP -->
+    <rule>
+      <repositoryKey>php</repositoryKey>
+      <key>S2077</key>
+      <priority>BLOCKER</priority>
+    </rule>
+    
+    <!-- File Inclusion in PHP -->
+    <rule>
+      <repositoryKey>php</repositoryKey>
+      <key>S2083</key>
+      <priority>BLOCKER</priority>
+    </rule>
+    
+    <!-- Code Quality Rules for Security -->
+    
+    <!-- Complex Methods (Security Review) -->
+    <rule>
+      <repositoryKey>java</repositoryKey>
+      <key>S1541</key>
+      <priority>MAJOR</priority>
+      <parameters>
+        <parameter>
+          <key>threshold</key>
+          <value>15</value>
+        </parameter>
+      </parameters>
+    </rule>
+    
+    <!-- Too Many Parameters -->
+    <rule>
+      <repositoryKey>java</repositoryKey>
+      <key>S107</key>
+      <priority>MAJOR</priority>
+      <parameters>
+        <parameter>
+          <key>threshold</key>
+          <value>7</value>
+        </parameter>
+      </parameters>
+    </rule>
+    
+    <!-- Cognitive Complexity -->
+    <rule>
+      <repositoryKey>java</repositoryKey>
+      <key>S3776</key>
+      <priority>CRITICAL</priority>
+      <parameters>
+        <parameter>
+          <key>threshold</key>
+          <value>15</value>
+        </parameter>
+      </parameters>
+    </rule>
+    
+  </rules>
+</profile>

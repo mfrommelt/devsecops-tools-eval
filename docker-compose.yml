@@ -1,3 +1,17 @@
+# docker-compose.yml - Updated with SonarQube integration
+version: '3.8'
+
+networks:
+  csb-test-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  mysql_data:
+  sonarqube_data:
+  sonarqube_logs:
+  sonarqube_extensions:
+
 services:
   # Frontend Applications
   react-app:
@@ -65,7 +79,6 @@ services:
     ports:
       - "5000:5000"
     environment:
-      # Updated: Use FLASK_DEBUG instead of deprecated FLASK_ENV
       - FLASK_DEBUG=true
       - FLASK_APP=app.py
       - PYTHONUNBUFFERED=1
@@ -125,7 +138,7 @@ services:
       context: ./backend/node-express
       dockerfile: Dockerfile
     ports:
-      - "3001:3000"
+      - "3001:3001"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://postgres:hardcoded_spring_db_password_789@postgres:5432/nodedb
@@ -135,7 +148,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -147,6 +160,7 @@ services:
     ports:
       - "8888:80"
     environment:
+      - DRUPAL_ENV=development
       - MYSQL_HOST=mysql
       - MYSQL_DATABASE=drupal
       - MYSQL_USER=drupal
@@ -162,7 +176,7 @@ services:
       timeout: 10s
       retries: 3
 
-  # Databases with health checks
+  # Databases
   postgres:
     image: postgres:13
     environment:
@@ -173,8 +187,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./databases/postgresql/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh
-      - ./databases/postgresql/seed-data.sql:/docker-entrypoint-initdb.d/seed-data.sql
+      - ./databases/postgresql/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh:ro
     networks:
       - csb-test-network
     healthcheck:
@@ -194,7 +207,6 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./databases/mysql/schemas:/docker-entrypoint-initdb.d
     networks:
       - csb-test-network
     healthcheck:
@@ -203,287 +215,71 @@ services:
       timeout: 5s
       retries: 5
 
-  oracle:
-    image: container-registry.oracle.com/database/express:21.3.0-xe
+  # SonarQube Service
+  sonarqube:
+    image: sonarqube:community
+    container_name: csb-sonarqube
     environment:
-      ORACLE_PWD: oracle_password_123
-      ORACLE_CHARACTERSET: AL32UTF8
+      - SONAR_JDBC_URL=jdbc:postgresql://postgres:5432/sonarqube
+      - SONAR_JDBC_USERNAME=postgres
+      - SONAR_JDBC_PASSWORD=hardcoded_spring_db_password_789
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
     ports:
-      - "1521:1521"
+      - "9000:9000"
     volumes:
-      - oracle_data:/opt/oracle/oradata
-      - ./databases/oracle/schemas:/docker-entrypoint-initdb.d
-    networks:
-      - csb-test-network
-    healthcheck:
-      test: ["CMD", "sqlplus", "-L", "sys/oracle_password_123@localhost:1521/XE", "as", "sysdba", "<<< 'SELECT 1 FROM DUAL;'"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
-  # Enhanced Security Scanning Tools
-  semgrep:
-    image: semgrep/semgrep:latest
-    working_dir: /src
-    volumes:
-      - .:/src:ro
-      - ./security-reports:/reports
-    command: >
-      sh -c "
-        echo '🔍 Running Semgrep comprehensive security scans...' &&
-        mkdir -p /reports/semgrep &&
-        semgrep --config=p/security-audit --config=p/secrets --config=p/php --config=p/javascript --config=p/typescript --config=p/python --config=p/java --config=p/csharp --config=.semgrep/ --sarif --output=/reports/semgrep/comprehensive-scan.sarif /src &&
-        semgrep --config=p/security-audit --config=p/secrets --config=.semgrep/ --json --output=/reports/semgrep/comprehensive-scan.json /src &&
-        echo '✅ Semgrep scan complete - results in security-reports/semgrep/'
-      "
-    environment:
-      - SEMGREP_APP_TOKEN=${SEMGREP_APP_TOKEN:-}
-    networks:
-      - csb-test-network
-    profiles:
-      - security
-      - all
-
-  semgrep-json:
-    image: semgrep/semgrep:latest
-    working_dir: /src
-    volumes:
-      - .:/src:ro
-      - ./security-reports:/reports
-    command: semgrep --config=.semgrep/ --json --output=/reports/semgrep/custom-rules.json /src
-    environment:
-      - SEMGREP_APP_TOKEN=${SEMGREP_APP_TOKEN:-}
-    networks:
-      - csb-test-network
-    profiles:
-      - security
-      - all
-
-  trufflehog:
-    image: trufflesecurity/trufflehog:latest
-    working_dir: /src
-    volumes:
-      - .:/src:ro
-      - ./security-reports:/reports
-    command: >
-      sh -c "
-        echo '🔐 Running TruffleHog secret detection...' &&
-        mkdir -p /reports/trufflehog &&
-        trufflehog git file:///src --only-verified --json > /reports/trufflehog/secrets-verified.json &&
-        echo '✅ TruffleHog verified secrets scan complete'
-      "
-    networks:
-      - csb-test-network
-    profiles:
-      - security
-      - all
-
-  trufflehog-all:
-    image: trufflesecurity/trufflehog:latest
-    working_dir: /src
-    volumes:
-      - .:/src:ro
-      - ./security-reports:/reports
-    command: >
-      sh -c "
-        echo '🔐 Running TruffleHog comprehensive secret detection...' &&
-        mkdir -p /reports/trufflehog &&
-        trufflehog git file:///src --json > /reports/trufflehog/secrets-all.json &&
-        echo '✅ TruffleHog comprehensive scan complete'
-      "
-    networks:
-      - csb-test-network
-    profiles:
-      - security
-      - all
-
-  # OWASP ZAP for Dynamic Application Security Testing
-  zap:
-    image: ghcr.io/zaproxy/zaproxy:stable
-    working_dir: /zap/wrk
-    volumes:
-      - ./security-reports/zap:/zap/wrk
-    command: >
-      sh -c "
-        echo '🕷️ Running OWASP ZAP baseline scans...' &&
-        echo 'Waiting for services to be ready...' &&
-        sleep 60 &&
-        zap-baseline.py -t http://spring-boot-api:8080 -r zap-spring-boot-report.html -J zap-spring-boot-report.json || true &&
-        zap-baseline.py -t http://flask-api:5000 -r zap-flask-report.html -J zap-flask-report.json || true &&
-        zap-baseline.py -t http://django-app:8000 -r zap-django-report.html -J zap-django-report.json || true &&
-        zap-baseline.py -t http://node-express:3000 -r zap-node-report.html -J zap-node-report.json || true &&
-        echo '✅ ZAP scans complete - results in security-reports/zap/'
-      "
-    networks:
-      - csb-test-network
-    depends_on:
-      - spring-boot-api
-      - flask-api
-      - django-app
-      - node-express
-    profiles:
-      - security
-      - all
-
-  # Trivy for Container and Dependency Scanning
-  trivy:
-    image: aquasec/trivy:latest
-    volumes:
-      - .:/src:ro
-      - ./security-reports/trivy:/output
-    command: >
-      sh -c "
-        echo '🔍 Running Trivy filesystem scan...' &&
-        trivy fs --format json --output /output/filesystem-scan.json /src &&
-        echo '✅ Trivy filesystem scan complete'
-      "
-    networks:
-      - csb-test-network
-    profiles:
-      - security
-      - all
-
-  trivy-sarif:
-    image: aquasec/trivy:latest
-    volumes:
-      - .:/src:ro
-      - ./security-reports/trivy:/output
-    command: >
-      sh -c "
-        echo '🔍 Running Trivy SARIF scan...' &&
-        trivy fs --format sarif --output /output/filesystem-scan.sarif /src &&
-        echo '✅ Trivy SARIF scan complete'
-      "
-    networks:
-      - csb-test-network
-    profiles:
-      - security
-      - all
-
-  # Snyk for Dependency Scanning
-  snyk:
-    image: snyk/snyk:node
-    working_dir: /src
-    volumes:
-      - .:/src:ro
-      - ./security-reports:/reports
-    command: >
-      sh -c "
-        echo '📦 Running Snyk dependency scans...' &&
-        mkdir -p /reports/snyk &&
-        if [ -n \"$$SNYK_TOKEN\" ]; then
-          snyk test --all-projects --json > /reports/snyk/dependencies-scan.json || true &&
-          echo '✅ Snyk scan complete - results in security-reports/snyk/' ;
-        else
-          echo '⚠️ SNYK_TOKEN not set - skipping Snyk scan' ;
-          echo '{\"vulnerabilities\": [], \"message\": \"SNYK_TOKEN not provided\"}' > /reports/snyk/dependencies-scan.json ;
-        fi
-      "
-    environment:
-      - SNYK_TOKEN=${SNYK_TOKEN:-}
-    networks:
-      - csb-test-network
-    profiles:
-      - security
-      - all
-
-  # Enhanced Security Dashboard
-  security-dashboard:
-    image: nginx:alpine
-    ports:
-      - "9000:80"
-    volumes:
-      - ./security-reports:/usr/share/nginx/html/reports:ro
-      - ./security/dashboard/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./security/dashboard/index.html:/usr/share/nginx/html/index.html:ro
-    networks:
-      - csb-test-network
-    profiles:
-      - security
-      - all
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Security Validation Service
-  security-validator:
-    image: alpine:latest
-    working_dir: /app
-    volumes:
-      - .:/app:ro
-      - ./security-reports:/app/security-reports
-    command: >
-      sh -c "
-        echo '🔍 Installing dependencies for validation...' &&
-        apk add --no-cache jq curl bash &&
-        echo '✅ Dependencies installed' &&
-        echo '📊 Starting security validation service...' &&
-        while true; do
-          echo '🔍 Running security validation...' &&
-          /app/scripts/security/validate-scan-results.sh || true &&
-          echo '⏳ Waiting 300 seconds before next validation...' &&
-          sleep 300
-        done
-      "
-    networks:
-      - csb-test-network
-    depends_on:
-      - semgrep
-      - trufflehog
-      - trivy
-    profiles:
-      - security
-      - validation
-      - all
-
-  # Development Tools
-  adminer:
-    image: adminer
-    ports:
-      - "8081:8080"
-    environment:
-      ADMINER_DEFAULT_SERVER: postgres
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_logs:/opt/sonarqube/logs
+      - sonarqube_extensions:/opt/sonarqube/extensions
     networks:
       - csb-test-network
     depends_on:
       postgres:
         condition: service_healthy
-      mysql:
-        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/api/system/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    mem_limit: 2g
+    profiles:
+      - security
 
-  # Health Check Monitor
-  health-monitor:
-    image: alpine:latest
+  # Support Services
+  adminer:
+    image: adminer
+    ports:
+      - "8081:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgres
+    networks:
+      - csb-test-network
+    depends_on:
+      - postgres
+      - mysql
+
+  # Security Dashboard (existing)
+  security-dashboard:
+    image: nginx:alpine
+    container_name: csb-security-dashboard
+    ports:
+      - "9001:80"
     volumes:
-      - .:/app:ro
-    command: >
-      sh -c "
-        echo '🏥 Installing health check dependencies...' &&
-        apk add --no-cache curl jq bash &&
-        echo '✅ Health monitor ready' &&
-        while true; do
-          echo '🏥 Running health checks...' &&
-          /app/comprehensive-diagnostics.sh || true &&
-          echo '⏳ Waiting 180 seconds before next check...' &&
-          sleep 180
-        done
-      "
+      - ./security/dashboard:/usr/share/nginx/html:ro
+      - ./security/dashboard/nginx.conf:/etc/nginx/nginx.conf:ro
     networks:
       - csb-test-network
     profiles:
-      - monitoring
-      - all
-
-volumes:
-  postgres_data:
-  mysql_data:
-  oracle_data:
-
-networks:
-  csb-test-network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
+      - security
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
