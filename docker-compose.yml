@@ -1,6 +1,3 @@
-# docker-compose.yml - Updated with SonarQube integration
-version: '3.8'
-
 networks:
   csb-test-network:
     driver: bridge
@@ -29,10 +26,11 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      test: ["CMD", "curl", "-f", "--connect-timeout", "5", "http://localhost:3000"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 90s
 
   angular-app:
     build:
@@ -45,10 +43,11 @@ services:
     networks:
       - csb-test-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      test: ["CMD", "curl", "-f", "--connect-timeout", "5", "http://localhost:80"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 90s
 
   # Backend Applications
   django-app:
@@ -66,10 +65,11 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000"]
+      test: ["CMD", "curl", "-f", "--connect-timeout", "5", "http://localhost:8000/health"]
       interval: 30s
-      timeout: 10s
-      retries: 3
+      timeout: 15s
+      retries: 5
+      start_period: 60s
 
   flask-api:
     build: 
@@ -83,15 +83,16 @@ services:
       - FLASK_APP=app.py
       - PYTHONUNBUFFERED=1
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - csb-test-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      test: ["CMD", "curl", "-f", "--connect-timeout", "5", "http://localhost:5000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 60s
 
   spring-boot-api:
     build:
@@ -108,10 +109,11 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      test: ["CMD", "curl", "-f", "--connect-timeout", "10", "http://localhost:8080/api/health"]
       interval: 30s
-      timeout: 10s
-      retries: 3
+      timeout: 15s
+      retries: 5
+      start_period: 120s
 
   dotnet-api:
     build:
@@ -128,10 +130,11 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      test: ["CMD", "curl", "-f", "--connect-timeout", "5", "http://localhost:80/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
 
   node-express:
     build:
@@ -141,6 +144,7 @@ services:
       - "3001:3001"
     environment:
       - NODE_ENV=development
+      - PORT=3001
       - DATABASE_URL=postgresql://postgres:hardcoded_spring_db_password_789@postgres:5432/nodedb
     networks:
       - csb-test-network
@@ -148,10 +152,11 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      test: ["CMD", "curl", "-f", "--connect-timeout", "5", "http://localhost:3001/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
 
   php-drupal:
     build:
@@ -171,10 +176,11 @@ services:
       mysql:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      test: ["CMD", "curl", "-f", "--connect-timeout", "5", "http://localhost:80"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
 
   # Databases
   postgres:
@@ -182,7 +188,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: hardcoded_spring_db_password_789
-      POSTGRES_MULTIPLE_DATABASES: csbdb,flaskdb,springdb,dotnetdb,nodedb
+      POSTGRES_MULTIPLE_DATABASES: csbdb,flaskdb,springdb,dotnetdb,nodedb,sonarqube
     ports:
       - "5432:5432"
     volumes:
@@ -215,46 +221,9 @@ services:
       timeout: 5s
       retries: 5
 
-  # SonarQube Service
-  sonarqube:
-    image: sonarqube:community
-    container_name: csb-sonarqube
-    environment:
-      - SONAR_JDBC_URL=jdbc:postgresql://postgres:5432/sonarqube
-      - SONAR_JDBC_USERNAME=postgres
-      - SONAR_JDBC_PASSWORD=hardcoded_spring_db_password_789
-      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
-    ports:
-      - "9000:9000"
-    volumes:
-      - sonarqube_data:/opt/sonarqube/data
-      - sonarqube_logs:/opt/sonarqube/logs
-      - sonarqube_extensions:/opt/sonarqube/extensions
-    networks:
-      - csb-test-network
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/api/system/status"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-      nofile:
-        soft: 65536
-        hard: 65536
-    mem_limit: 2g
-    profiles:
-      - security
-
   # Support Services
   adminer:
-    image: adminer
+    image: adminer:4.8.1
     ports:
       - "8081:8080"
     environment:
@@ -264,22 +233,121 @@ services:
     depends_on:
       - postgres
       - mysql
+    healthcheck:
+      test: ["CMD", "curl", "-f", "--connect-timeout", "5", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # Security Dashboard (existing)
+  # Security Dashboard
   security-dashboard:
     image: nginx:alpine
-    container_name: csb-security-dashboard
     ports:
-      - "9001:80"
+      - "9000:80"
     volumes:
-      - ./security/dashboard:/usr/share/nginx/html:ro
-      - ./security/dashboard/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./security-dashboard:/usr/share/nginx/html:ro
+      - ./security-reports:/usr/share/nginx/html/reports:ro
     networks:
       - csb-test-network
     profiles:
       - security
+      - all
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      test: ["CMD", "curl", "-f", "--connect-timeout", "5", "http://localhost:80"]
       interval: 30s
       timeout: 10s
       retries: 3
+
+  # SonarQube Community Edition  
+  sonarqube:
+    image: sonarqube:10.7.0-community
+    container_name: csb-sonarqube
+    ports:
+      - "9001:9000"
+    environment:
+      - SONAR_JDBC_URL=jdbc:postgresql://postgres:5432/sonarqube
+      - SONAR_JDBC_USERNAME=postgres
+      - SONAR_JDBC_PASSWORD=hardcoded_spring_db_password_789
+      - SONAR_WEB_JAVAADDITIONALOPTS=-Xmx512m -Xms128m
+      - SONAR_CE_JAVAADDITIONALOPTS=-Xmx512m -Xms128m
+    networks:
+      - csb-test-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_logs:/opt/sonarqube/logs
+      - sonarqube_extensions:/opt/sonarqube/extensions
+    profiles:
+      - security
+      - all
+    healthcheck:
+      test: ["CMD", "curl", "-f", "--connect-timeout", "10", "http://localhost:9000/api/system/status"]
+      interval: 60s
+      timeout: 20s
+      retries: 10
+      start_period: 300s
+
+  # Security Tools (Containerized)
+  semgrep:
+    image: semgrep/semgrep
+    volumes:
+      - .:/src:ro
+      - ./security-reports:/reports
+    command: >
+      sh -c "
+        semgrep --config=p/security-audit --config=p/secrets --json --output=/reports/semgrep-scan.json /src &&
+        semgrep --config=p/security-audit --config=p/secrets --sarif --output=/reports/semgrep-scan.sarif /src
+      "
+    profiles:
+      - security
+      - all
+
+  trivy:
+    image: aquasec/trivy
+    volumes:
+      - .:/src:ro
+      - ./security-reports:/reports
+    command: >
+      sh -c "
+        trivy fs --format json --output /reports/trivy-filesystem.json /src &&
+        trivy config --format json --output /reports/trivy-config.json /src
+      "
+    profiles:
+      - security
+      - all
+
+  trufflehog:
+    image: trufflesecurity/trufflehog
+    volumes:
+      - .:/src:ro
+      - ./security-reports:/reports
+    command: >
+      sh -c "
+        trufflehog git file:///src --only-verified --json > /reports/trufflehog-secrets.json
+      "
+    profiles:
+      - security
+      - all
+
+  zap:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    command: >
+      sh -c "
+        sleep 60 &&
+        zap-baseline.py -t http://php-drupal/ -J /zap/wrk/zap-drupal.json &&
+        zap-baseline.py -t http://spring-boot-api:8080/ -J /zap/wrk/zap-spring.json &&
+        zap-baseline.py -t http://dotnet-api/ -J /zap/wrk/zap-dotnet.json
+      "
+    volumes:
+      - ./security-reports:/zap/wrk
+    networks:
+      - csb-test-network
+    depends_on:
+      - php-drupal
+      - spring-boot-api
+      - dotnet-api
+    profiles:
+      - security
+      - all
