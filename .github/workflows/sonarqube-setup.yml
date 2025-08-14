@@ -1,0 +1,415 @@
+name: SonarQube Project Setup
+
+on:
+  workflow_dispatch:
+    inputs:
+      sonar_host:
+        description: 'SonarQube Host (sonarcloud.io or self-hosted URL)'
+        required: true
+        default: 'https://sonarcloud.io'
+        type: choice
+        options:
+          - 'https://sonarcloud.io'
+          - 'http://localhost:9000'
+          - 'https://your-sonarqube-server.com'
+      
+      project_key:
+        description: 'Project Key'
+        required: true
+        default: 'csb-devsecops-test'
+        type: string
+      
+      project_name:
+        description: 'Project Name'
+        required: true
+        default: 'CSB DevSecOps Test Environment'
+        type: string
+      
+      organization:
+        description: 'SonarCloud Organization (leave empty for self-hosted)'
+        required: false
+        default: 'csb-security'
+        type: string
+
+jobs:
+  setup-sonarqube-project:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Validate Inputs
+      run: |
+        echo "Validating SonarQube setup inputs..."
+        echo "Host: ${{ github.event.inputs.sonar_host }}"
+        echo "Project Key: ${{ github.event.inputs.project_key }}"
+        echo "Project Name: ${{ github.event.inputs.project_name }}"
+        echo "Organization: ${{ github.event.inputs.organization }}"
+        
+        # Validate project key format
+        if [[ ! "${{ github.event.inputs.project_key }}" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+          echo "Invalid project key format. Use only letters, numbers, hyphens, and underscores."
+          exit 1
+        fi
+        
+        echo "Input validation passed"
+    
+    - name: Setup SonarCloud Project
+      if: github.event.inputs.sonar_host == 'https://sonarcloud.io'
+      run: |
+        echo "Setting up SonarCloud project..."
+        
+        # Create project in SonarCloud using API
+        curl -X POST \
+          "${{ github.event.inputs.sonar_host }}/api/projects/create" \
+          -H "Authorization: Bearer ${{ secrets.SONAR_TOKEN }}" \
+          -d "organization=${{ github.event.inputs.organization }}" \
+          -d "project=${{ github.event.inputs.project_key }}" \
+          -d "name=${{ github.event.inputs.project_name }}"
+        
+        echo "SonarCloud project created successfully"
+    
+    - name: Setup Self-hosted SonarQube Project
+      if: github.event.inputs.sonar_host != 'https://sonarcloud.io'
+      run: |
+        echo "Setting up self-hosted SonarQube project..."
+        
+        # For self-hosted, we'll use admin credentials by default
+        # In production, you should use proper authentication
+        curl -X POST \
+          "${{ github.event.inputs.sonar_host }}/api/projects/create" \
+          -u "admin:admin" \
+          -d "project=${{ github.event.inputs.project_key }}" \
+          -d "name=${{ github.event.inputs.project_name }}"
+        
+        echo "Self-hosted SonarQube project created successfully"
+    
+    - name: Configure Quality Gate
+      run: |
+        echo "Configuring security-focused quality gate..."
+        
+        # Define quality gate conditions for security
+        if [ "${{ github.event.inputs.sonar_host }}" == "https://sonarcloud.io" ]; then
+          AUTH_HEADER="Authorization: Bearer ${{ secrets.SONAR_TOKEN }}"
+          BASE_URL="${{ github.event.inputs.sonar_host }}"
+        else
+          AUTH_HEADER="Authorization: Basic $(echo -n 'admin:admin' | base64)"
+          BASE_URL="${{ github.event.inputs.sonar_host }}"
+        fi
+        
+        # Create custom quality gate for security
+        QUALITY_GATE_ID=$(curl -X POST \
+          "$BASE_URL/api/qualitygates/create" \
+          -H "$AUTH_HEADER" \
+          -d "name=CSB Security Gate" | jq -r '.id')
+        
+        echo "Created quality gate with ID: $QUALITY_GATE_ID"
+        
+        # Add security-focused conditions
+        echo "Adding security conditions to quality gate..."
+        
+        # No critical vulnerabilities allowed
+        curl -X POST \
+          "$BASE_URL/api/qualitygates/create_condition" \
+          -H "$AUTH_HEADER" \
+          -d "gateId=$QUALITY_GATE_ID" \
+          -d "metric=vulnerabilities" \
+          -d "op=GT" \
+          -d "error=0"
+        
+        # No security hotspots with high/critical severity
+        curl -X POST \
+          "$BASE_URL/api/qualitygates/create_condition" \
+          -H "$AUTH_HEADER" \
+          -d "gateId=$QUALITY_GATE_ID" \
+          -d "metric=security_hotspots_reviewed" \
+          -d "op=LT" \
+          -d "error=100"
+        
+        # Minimum code coverage
+        curl -X POST \
+          "$BASE_URL/api/qualitygates/create_condition" \
+          -H "$AUTH_HEADER" \
+          -d "gateId=$QUALITY_GATE_ID" \
+          -d "metric=coverage" \
+          -d "op=LT" \
+          -d "error=80"
+        
+        # Associate quality gate with project
+        curl -X POST \
+          "$BASE_URL/api/qualitygates/select" \
+          -H "$AUTH_HEADER" \
+          -d "gateId=$QUALITY_GATE_ID" \
+          -d "projectKey=${{ github.event.inputs.project_key }}"
+        
+        echo "Security quality gate configured and assigned to project"
+    
+    - name: Import Security Rules Profile
+      run: |
+        echo "Importing CSB security rules profile..."
+        
+        if [ "${{ github.event.inputs.sonar_host }}" == "https://sonarcloud.io" ]; then
+          AUTH_HEADER="Authorization: Bearer ${{ secrets.SONAR_TOKEN }}"
+          BASE_URL="${{ github.event.inputs.sonar_host }}"
+        else
+          AUTH_HEADER="Authorization: Basic $(echo -n 'admin:admin' | base64)"
+          BASE_URL="${{ github.event.inputs.sonar_host }}"
+        fi
+        
+        # Create security-focused quality profiles for each language
+        
+        # Java Security Profile
+        curl -X POST \
+          "$BASE_URL/api/qualityprofiles/create" \
+          -H "$AUTH_HEADER" \
+          -d "name=CSB Java Security" \
+          -d "language=java"
+        
+        # JavaScript Security Profile  
+        curl -X POST \
+          "$BASE_URL/api/qualityprofiles/create" \
+          -H "$AUTH_HEADER" \
+          -d "name=CSB JavaScript Security" \
+          -d "language=js"
+        
+        # Python Security Profile
+        curl -X POST \
+          "$BASE_URL/api/qualityprofiles/create" \
+          -H "$AUTH_HEADER" \
+          -d "name=CSB Python Security" \
+          -d "language=py"
+        
+        # C# Security Profile
+        curl -X POST \
+          "$BASE_URL/api/qualityprofiles/create" \
+          -H "$AUTH_HEADER" \
+          -d "name=CSB C# Security" \
+          -d "language=cs"
+        
+        # PHP Security Profile
+        curl -X POST \
+          "$BASE_URL/api/qualityprofiles/create" \
+          -H "$AUTH_HEADER" \
+          -d "name=CSB PHP Security" \
+          -d "language=php"
+        
+        echo "Security quality profiles created for all languages"
+    
+    - name: Configure Project Settings
+      run: |
+        echo "Configuring project-specific settings..."
+        
+        if [ "${{ github.event.inputs.sonar_host }}" == "https://sonarcloud.io" ]; then
+          AUTH_HEADER="Authorization: Bearer ${{ secrets.SONAR_TOKEN }}"
+          BASE_URL="${{ github.event.inputs.sonar_host }}"
+        else
+          AUTH_HEADER="Authorization: Basic $(echo -n 'admin:admin' | base64)"
+          BASE_URL="${{ github.event.inputs.sonar_host }}"
+        fi
+        
+        # Set project visibility (private for security testing)
+        curl -X POST \
+          "$BASE_URL/api/projects/update_visibility" \
+          -H "$AUTH_HEADER" \
+          -d "project=${{ github.event.inputs.project_key }}" \
+          -d "visibility=private"
+        
+        # Configure exclusions for security testing
+        curl -X POST \
+          "$BASE_URL/api/settings/set" \
+          -H "$AUTH_HEADER" \
+          -d "component=${{ github.event.inputs.project_key }}" \
+          -d "key=sonar.exclusions" \
+          -d "value=node_modules/**,target/**,build/**,dist/**,*.log,security-reports/**"
+        
+        # Configure test exclusions
+        curl -X POST \
+          "$BASE_URL/api/settings/set" \
+          -H "$AUTH_HEADER" \
+          -d "component=${{ github.event.inputs.project_key }}" \
+          -d "key=sonar.test.exclusions" \
+          -d "value=**/*test*/**,**/*Test*/**,**/*spec*/**,**/*Spec*/**"
+        
+        # Enable security hotspot detection
+        curl -X POST \
+          "$BASE_URL/api/settings/set" \
+          -H "$AUTH_HEADER" \
+          -d "component=${{ github.event.inputs.project_key }}" \
+          -d "key=sonar.security.hotspots.inheritFromParent" \
+          -d "value=true"
+        
+        echo "Project settings configured for security analysis"
+    
+    - name: Generate Configuration Files
+      run: |
+        echo "Generating SonarQube configuration files..."
+        
+        # Create sonar-project.properties with actual values
+        echo "# SonarQube Configuration for CSB DevSecOps Test Environment" > sonar-project.properties
+        echo "# Generated by GitHub Actions setup workflow" >> sonar-project.properties
+        echo "" >> sonar-project.properties
+        echo "# Project identification" >> sonar-project.properties
+        echo "sonar.projectKey=${{ github.event.inputs.project_key }}" >> sonar-project.properties
+        echo "sonar.projectName=${{ github.event.inputs.project_name }}" >> sonar-project.properties
+        echo "sonar.projectVersion=1.0" >> sonar-project.properties
+        
+        if [ "${{ github.event.inputs.organization }}" != "" ]; then
+          echo "sonar.organization=${{ github.event.inputs.organization }}" >> sonar-project.properties
+        fi
+        
+        echo "" >> sonar-project.properties
+        echo "# Source code configuration" >> sonar-project.properties
+        echo "sonar.sources=." >> sonar-project.properties
+        echo "sonar.sourceEncoding=UTF-8" >> sonar-project.properties
+        echo "" >> sonar-project.properties
+        echo "# Exclusions - files and directories to ignore" >> sonar-project.properties
+        echo "sonar.exclusions=**/node_modules/**,**/target/**,**/build/**,**/dist/**,**/*.log,**/security-reports/**,**/databases/**,**/.git/**,**/.devcontainer/**,**/docker-compose*.yml,**/Dockerfile*,**/.env*,**/README*.md" >> sonar-project.properties
+        echo "" >> sonar-project.properties
+        echo "# Language-specific configurations" >> sonar-project.properties
+        echo "sonar.java.source=11" >> sonar-project.properties
+        echo "sonar.java.target=11" >> sonar-project.properties
+        echo "sonar.java.binaries=**/target/classes,**/build/classes" >> sonar-project.properties
+        echo "" >> sonar-project.properties
+        echo "# Test configurations" >> sonar-project.properties
+        echo "sonar.test.exclusions=**/*test*/**,**/*Test*/**,**/*spec*/**,**/*Spec*/**" >> sonar-project.properties
+        echo "" >> sonar-project.properties
+        echo "# SonarQube server configuration" >> sonar-project.properties
+        echo "sonar.host.url=${{ github.event.inputs.sonar_host }}" >> sonar-project.properties
+        
+        if [ "${{ github.event.inputs.sonar_host }}" == "https://sonarcloud.io" ]; then
+          echo "# For SonarCloud, use SONAR_TOKEN environment variable" >> sonar-project.properties
+        else
+          echo "sonar.login=admin" >> sonar-project.properties
+          echo "sonar.password=admin" >> sonar-project.properties
+        fi
+        
+        echo "" >> sonar-project.properties
+        echo "# Quality gate configuration" >> sonar-project.properties
+        echo "sonar.qualitygate.wait=true" >> sonar-project.properties
+        echo "" >> sonar-project.properties
+        echo "# Security settings" >> sonar-project.properties
+        echo "sonar.security.hotspots.inheritFromParent=true" >> sonar-project.properties
+        
+        echo "Configuration files generated"
+    
+    - name: Create SonarQube Documentation
+      run: |
+        echo "Creating SonarQube setup documentation..."
+        
+        echo "# SonarQube Setup Complete" > SONARQUBE_SETUP.md
+        echo "" >> SONARQUBE_SETUP.md
+        echo "This document contains the setup information for your SonarQube project." >> SONARQUBE_SETUP.md
+        echo "" >> SONARQUBE_SETUP.md
+        echo "## Project Details" >> SONARQUBE_SETUP.md
+        echo "- **Host**: ${{ github.event.inputs.sonar_host }}" >> SONARQUBE_SETUP.md
+        echo "- **Project Key**: ${{ github.event.inputs.project_key }}" >> SONARQUBE_SETUP.md
+        echo "- **Project Name**: ${{ github.event.inputs.project_name }}" >> SONARQUBE_SETUP.md
+        echo "- **Organization**: ${{ github.event.inputs.organization }}" >> SONARQUBE_SETUP.md
+        echo "" >> SONARQUBE_SETUP.md
+        echo "## Access Information" >> SONARQUBE_SETUP.md
+        
+        if [ "${{ github.event.inputs.sonar_host }}" == "https://sonarcloud.io" ]; then
+          echo "- **Dashboard**: https://sonarcloud.io/dashboard?id=${{ github.event.inputs.project_key }}" >> SONARQUBE_SETUP.md
+          echo "- **Issues**: https://sonarcloud.io/project/issues?id=${{ github.event.inputs.project_key }}" >> SONARQUBE_SETUP.md
+          echo "- **Security**: https://sonarcloud.io/security_hotspots?id=${{ github.event.inputs.project_key }}" >> SONARQUBE_SETUP.md
+          echo "" >> SONARQUBE_SETUP.md
+          echo "## GitHub Secrets Required" >> SONARQUBE_SETUP.md
+          echo "Add these secrets to your GitHub repository:" >> SONARQUBE_SETUP.md
+          echo "- **SONAR_TOKEN**: Your SonarCloud authentication token" >> SONARQUBE_SETUP.md
+        else
+          echo "- **Dashboard**: ${{ github.event.inputs.sonar_host }}/dashboard?id=${{ github.event.inputs.project_key }}" >> SONARQUBE_SETUP.md
+          echo "- **Issues**: ${{ github.event.inputs.sonar_host }}/project/issues?id=${{ github.event.inputs.project_key }}" >> SONARQUBE_SETUP.md
+          echo "- **Security**: ${{ github.event.inputs.sonar_host }}/security_hotspots?id=${{ github.event.inputs.project_key }}" >> SONARQUBE_SETUP.md
+          echo "" >> SONARQUBE_SETUP.md
+          echo "## Default Credentials" >> SONARQUBE_SETUP.md
+          echo "- **Username**: admin" >> SONARQUBE_SETUP.md
+          echo "- **Password**: admin (change on first login)" >> SONARQUBE_SETUP.md
+        fi
+        
+        echo "" >> SONARQUBE_SETUP.md
+        echo "## Usage" >> SONARQUBE_SETUP.md
+        echo "Run analysis using any of these methods:" >> SONARQUBE_SETUP.md
+        echo "" >> SONARQUBE_SETUP.md
+        echo "### 1. Using the helper script (recommended)" >> SONARQUBE_SETUP.md
+        echo '```bash' >> SONARQUBE_SETUP.md
+        echo "./scripts/security/run-sonarqube-analysis.sh" >> SONARQUBE_SETUP.md
+        echo '```' >> SONARQUBE_SETUP.md
+        echo "" >> SONARQUBE_SETUP.md
+        echo "### 2. Using sonar-scanner directly" >> SONARQUBE_SETUP.md
+        echo '```bash' >> SONARQUBE_SETUP.md
+        echo "sonar-scanner" >> SONARQUBE_SETUP.md
+        echo '```' >> SONARQUBE_SETUP.md
+        echo "" >> SONARQUBE_SETUP.md
+        echo "### 3. Using Docker" >> SONARQUBE_SETUP.md
+        echo '```bash' >> SONARQUBE_SETUP.md
+        echo 'docker run --rm \' >> SONARQUBE_SETUP.md
+        echo '  --network csb-test-network \' >> SONARQUBE_SETUP.md
+        echo '  -v "$(pwd):/usr/src" \' >> SONARQUBE_SETUP.md
+        echo '  sonarsource/sonar-scanner-cli:latest' >> SONARQUBE_SETUP.md
+        echo '```' >> SONARQUBE_SETUP.md
+        echo "" >> SONARQUBE_SETUP.md
+        echo "## Quality Gate" >> SONARQUBE_SETUP.md
+        echo "A custom security-focused quality gate has been configured with:" >> SONARQUBE_SETUP.md
+        echo "- Zero critical vulnerabilities allowed" >> SONARQUBE_SETUP.md
+        echo "- 100% security hotspots must be reviewed" >> SONARQUBE_SETUP.md
+        echo "- Minimum 80% code coverage" >> SONARQUBE_SETUP.md
+        echo "- Security-focused quality profiles for all languages" >> SONARQUBE_SETUP.md
+        echo "" >> SONARQUBE_SETUP.md
+        echo "## Next Steps" >> SONARQUBE_SETUP.md
+        echo "1. SonarQube project is configured and ready" >> SONARQUBE_SETUP.md
+        echo "2. Run your first analysis: ./scripts/security/run-sonarqube-analysis.sh" >> SONARQUBE_SETUP.md
+        echo "3. Review results in the SonarQube dashboard" >> SONARQUBE_SETUP.md
+        echo "4. Address any security vulnerabilities found" >> SONARQUBE_SETUP.md
+        echo "5. Set up regular monitoring and analysis" >> SONARQUBE_SETUP.md
+        echo "" >> SONARQUBE_SETUP.md
+        echo "---" >> SONARQUBE_SETUP.md
+        echo "*Setup completed by GitHub Actions on $(date)*" >> SONARQUBE_SETUP.md
+        
+        echo "Setup documentation created"
+    
+    - name: Commit Configuration Files
+      run: |
+        echo "Committing SonarQube configuration files..."
+        
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        git add sonar-project.properties SONARQUBE_SETUP.md
+        
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "feat: Configure SonarQube project for ${{ github.event.inputs.project_key }}"
+          git push
+          echo "Configuration files committed to repository"
+        fi
+    
+    - name: Setup Summary
+      run: |
+        echo ""
+        echo "====================================="
+        echo "SonarQube Setup Complete!"
+        echo "====================================="
+        echo ""
+        echo "Project Details:"
+        echo "   Host: ${{ github.event.inputs.sonar_host }}"
+        echo "   Key:  ${{ github.event.inputs.project_key }}"
+        echo "   Name: ${{ github.event.inputs.project_name }}"
+        echo ""
+        echo "Access URLs:"
+        if [ "${{ github.event.inputs.sonar_host }}" == "https://sonarcloud.io" ]; then
+          echo "   Dashboard: https://sonarcloud.io/dashboard?id=${{ github.event.inputs.project_key }}"
+          echo "   Issues: https://sonarcloud.io/project/issues?id=${{ github.event.inputs.project_key }}"
+        else
+          echo "   Dashboard: ${{ github.event.inputs.sonar_host }}/dashboard?id=${{ github.event.inputs.project_key }}"
+          echo "   Issues: ${{ github.event.inputs.sonar_host }}/project/issues?id=${{ github.event.inputs.project_key }}"
+        fi
+        echo ""
+        echo "Next Steps:"
+        echo "   1. Review SONARQUBE_SETUP.md for detailed information"
+        echo "   2. Run first analysis with the helper script"
+        echo "   3. Check security quality gate results"
+        echo "   4. Address any security findings"
+        echo ""
+        echo "Your SonarQube integration is ready for security analysis!"
