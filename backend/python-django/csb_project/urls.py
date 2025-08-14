@@ -1,7 +1,8 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from . import health_views
 import json
 
 def health_check(request):
@@ -52,4 +53,6 @@ urlpatterns = [
     path('api/users/', vulnerable_users),
     path('api/login/', api_login),
     path('', health_check),  # Root endpoint
+    path('health', health_views.health_check, name='health_check'),
+    path('', health_views.root_endpoint, name='root'),
 ]
